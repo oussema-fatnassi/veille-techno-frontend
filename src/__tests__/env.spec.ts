@@ -6,6 +6,13 @@ describe('API environment configuration', () => {
     expect(validateApiBaseUrl(value)).toBe(value),
   )
 
+  it.each(['http://localhost:3000', 'http://localhost:3000/'])(
+    'adds the API prefix to %s',
+    (value) => {
+      expect(validateApiBaseUrl(value)).toBe('http://localhost:3000/api')
+    },
+  )
+
   it('trims whitespace and trailing slashes', () => {
     expect(validateApiBaseUrl('  http://localhost:3000/api/  ')).toBe('http://localhost:3000/api')
   })
@@ -15,6 +22,8 @@ describe('API environment configuration', () => {
     '',
     '   ',
     '/api',
+    'https://example.com/api/api',
+    'https://example.com/other',
     'not-a-url',
     'ftp://example.com/api',
     'https://user:password@example.com/api',
