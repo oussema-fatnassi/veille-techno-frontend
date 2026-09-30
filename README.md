@@ -10,7 +10,7 @@ Current scope: project initialization (F03) and tests/CI infrastructure (F04). T
 - npm **11.20.0**, recorded in `package.json`.
 - VS Code with **Vue - Official** (`Vue.volar`) for Vue/TypeScript support.
 
-The lockfile records the exact installed dependency versions. Use the same Node and npm versions locally and in CI. The GitHub Actions workflow uses these versions too.
+The lockfile records the exact installed dependency versions. Use the same Node and npm versions locally and in CI. The GitHub Actions workflow uses these versions too. CI invokes npm through `npx --yes npm@11.20.0` to avoid replacing the runner's global npm installation.
 
 ## Install and run
 

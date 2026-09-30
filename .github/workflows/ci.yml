@@ -31,32 +31,32 @@ jobs:
           cache: npm
 
       - name: Use project npm version
-        run: npm install --global npm@11.20.0
+        run: npx --yes npm@11.20.0 --version
 
       - name: Install dependencies
-        run: npm ci
-      
+        run: npx --yes npm@11.20.0 ci
+
       - name: Check formatting
-        run: npm run format:check
-      
+        run: npx --yes npm@11.20.0 run format:check
+
       - name: Lint
-        run: npm run lint:check
-      
+        run: npx --yes npm@11.20.0 run lint:check
+
       - name: Check types
-        run: npm run type-check && npm run type-check:e2e
-      
+        run: npx --yes npm@11.20.0 run type-check && npx --yes npm@11.20.0 run type-check:e2e
+
       - name: Unit and component tests with coverage
-        run: npm run test:coverage
-      
+        run: npx --yes npm@11.20.0 run test:coverage
+
       - name: Build
-        run: npm run build-only
-      
+        run: npx --yes npm@11.20.0 run build-only
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      
+
       - name: Browser smoke test
-        run: npm run test:e2e
-      
+        run: npx --yes npm@11.20.0 run test:e2e
+
       - name: Upload test reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
