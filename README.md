@@ -2,7 +2,7 @@
 
 A Kanban frontend built with Vue 3, TypeScript, and Vite, using the existing NestJS API.
 
-Current scope: project initialization (F03). The Vue screen and Tailwind setup work; authentication and Kanban features are not implemented yet. Vue has been selected so development can start; the technology comparison report will be completed before submission. F01 research does not block the initialization work.
+Current scope: project initialization (F03) and tests/CI infrastructure (F04). The Vue screen and Tailwind setup work; authentication and Kanban features are not implemented yet. Vue has been selected so development can start; the technology comparison report will be completed before submission. F01 research does not block the initialization work.
 
 ## Requirements
 
@@ -10,7 +10,7 @@ Current scope: project initialization (F03). The Vue screen and Tailwind setup w
 - npm **11.20.0**, recorded in `package.json`.
 - VS Code with **Vue - Official** (`Vue.volar`) for Vue/TypeScript support.
 
-The lockfile records the exact installed dependency versions. Use the same Node and npm versions locally and in CI. CI configuration is planned in F04.
+The lockfile records the exact installed dependency versions. Use the same Node and npm versions locally and in CI. The GitHub Actions workflow uses these versions too. CI invokes npm through `npx --yes npm@11.20.0` to avoid replacing the runner's global npm installation.
 
 ## Install and run
 
@@ -56,10 +56,9 @@ For a production build, supply the intended public API URL through the build env
 ## Checks
 
 ```bash
-npm run type-check
-npm run lint:check
-npm run format:check
-npm run test:unit -- --run
+npm run check          # formatting, lint, application/E2E types, coverage, build
+npm run test:unit:run  # unit/component tests once, without coverage
+npm run test:coverage # tests with coverage thresholds
 npm run build
 npm run preview
 ```
@@ -70,10 +69,37 @@ For the generated browser smoke test:
 
 ```bash
 npx playwright install chromium
-npm run test:e2e -- --project=chromium
+npm run test:e2e
 ```
 
-Keep `.env` configured for tests because Vitest shares the Vite configuration. Unit tests currently cover the initial screen and API URL validation. The browser test checks the initial screen; application workflows and CI integration come in later tickets.
+Keep `.env` configured for tests because Vitest shares the Vite configuration. Alternatively, provide `VITE_API_BASE_URL` through the environment, as CI does. The browser test builds the app, starts its own preview server on port 4173, and runs headless Chromium. It fails if that port is already occupied instead of testing a stale server. Application workflows against the real backend come in F15.
+
+### HTTP mocks
+
+`tests/mocks/` contains an MSW server, a sample list response, and reusable error handlers. `tests/setup.ts` starts interception for unit/component tests and resets overrides after every test. Unexpected requests fail instead of reaching a real backend.
+
+```ts
+import { server } from '../../tests/mocks/server'
+import { listsError } from '../../tests/mocks/handlers'
+
+server.use(listsError(403))
+```
+
+Supported fixtures: success, 400 validation (message array), 401 unauthenticated, 403 denied access, 404 missing resource, 500/503 server unavailability, and network failure (`listsNetworkError`). The test API base is `http://kanban.test/api`. Use per-test overrides for errors; never import these mocks into application code. The HTTP infrastructure tests use Axios to verify that responses and errors pass through the transport. They do not yet test an application API client or interceptors; those belong to F05.
+
+### Coverage
+
+`npm run test:coverage` writes HTML, LCOV, and JSON summaries to `coverage/`. Every included file must meet **80% lines, branches, functions, and statements**. Thresholds are already enforced, including for new untested files under `src/` or `config/`.
+
+Coverage excludes tests, type declarations, and the application/router bootstrap (`src/main.ts`, `src/router/index.ts`). The browser smoke test exercises startup. Keep business logic out of those bootstrap files; new services, stores, components, and configuration logic remain subject to coverage. Mock infrastructure is outside the application coverage scope and has its own verification tests.
+
+### GitHub Actions
+
+`.github/workflows/ci.yml` runs on pull requests, pushes to `main`, and manual dispatch. It installs from the lockfile, checks formatting/lint/types, runs unit/component tests with coverage, builds, and runs the Chromium smoke test. A failed step fails the job. Coverage and browser reports are retained for seven days, including on failures when reports exist. The workflow needs no backend secrets or running database.
+
+Run `npm run check` followed by `npm run test:e2e` before opening a PR. These are local checks; a successful GitHub-hosted run can only be confirmed after the workflow is committed and pushed.
+
+To verify the failure gate, temporarily make a test assertion fail, run `npm run test:coverage`, and check that it exits nonzero. Restore the assertion and rerun before committing. Do not commit an intentionally failing test. To check coverage enforcement separately, temporarily add an untested function under `src/` and verify that the same command fails its thresholds.
 
 ## Stack and organization
 
@@ -92,7 +118,9 @@ src/
   __tests__/            # unit and component tests
   App.vue               # root component
   main.ts               # application entry point
+tests/                  # shared unit-test setup and HTTP mocks
 e2e/                    # browser tests
+.github/workflows/      # GitHub Actions checks
 ```
 
 Add `components/`, `views/`, and `services/` as the corresponding features are implemented. Keep API calls in services rather than repeating them in components. The generated counter store is a scaffold example, not Kanban functionality.

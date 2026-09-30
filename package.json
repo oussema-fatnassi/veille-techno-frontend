@@ -14,9 +14,13 @@
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/",
+    "format": "prettier --write .",
     "lint:check": "oxlint . && eslint .",
-    "format:check": "prettier --check src/ config/ *.ts *.json README.md"
+    "format:check": "prettier --check .",
+    "test:unit:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "type-check:e2e": "tsc --project e2e/tsconfig.json --noEmit",
+    "check": "npm run format:check && npm run lint:check && npm run type-check && npm run type-check:e2e && npm run test:coverage && npm run build-only"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
@@ -34,6 +38,7 @@
     "@types/jsdom": "^30.0.0",
     "@types/node": "^24.13.4",
     "@vitejs/plugin-vue": "^6.0.8",
+    "@vitest/coverage-v8": "4.1.11",
     "@vitest/eslint-plugin": "^1.6.27",
     "@vue/eslint-config-typescript": "^14.9.0",
     "@vue/test-utils": "^2.5.0",
@@ -45,6 +50,7 @@
     "eslint-plugin-vue": "~10.11.0",
     "jiti": "^2.7.0",
     "jsdom": "^30.0.1",
+    "msw": "2.15.0",
     "npm-run-all2": "^9.0.3",
     "oxlint": "~1.82.0",
     "prettier": "3.9.6",
