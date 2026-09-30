@@ -1,6 +1,6 @@
 export function validateApiBaseUrl(value: string | undefined): string {
   const message =
-    'VITE_API_BASE_URL must be an absolute HTTP(S) URL without credentials, a query, or a fragment. Copy .env.example to .env and set the API address.'
+    'VITE_API_BASE_URL must be an absolute HTTP(S) backend origin, optionally ending in /api, without credentials, a query, or a fragment. Copy .env.example to .env and set the API address.'
 
   if (!value?.trim()) throw new Error(message)
 
@@ -16,10 +16,11 @@ export function validateApiBaseUrl(value: string | undefined): string {
     url.username ||
     url.password ||
     url.search ||
-    url.hash
+    url.hash ||
+    !['', '/', '/api', '/api/'].includes(url.pathname)
   ) {
     throw new Error(message)
   }
 
-  return value.trim().replace(/\/+$/, '')
+  return `${url.origin}/api`
 }

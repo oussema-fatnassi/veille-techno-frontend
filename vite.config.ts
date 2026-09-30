@@ -10,10 +10,18 @@ import { validateApiBaseUrl } from './config/env.ts'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
-  validateApiBaseUrl(env.VITE_API_BASE_URL)
+  const apiBaseUrl = validateApiBaseUrl(env.VITE_API_BASE_URL)
+  const proxy = {
+    '^/api(?:/|$)': {
+      target: new URL(apiBaseUrl).origin,
+      changeOrigin: true,
+    },
+  }
 
   return {
     plugins: [vue(), vueDevTools(), tailwindcss()],
+    server: { proxy },
+    preview: { proxy },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

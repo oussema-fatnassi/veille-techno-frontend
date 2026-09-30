@@ -57,6 +57,9 @@ jobs:
       - name: Browser smoke test
         run: npx --yes npm@11.20.0 run test:e2e
 
+      - name: API proxy browser tests
+        run: npx --yes npm@11.20.0 run test:api
+
       - name: Upload test reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
