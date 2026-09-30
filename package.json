@@ -20,7 +20,8 @@
     "test:unit:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "type-check:e2e": "tsc --project e2e/tsconfig.json --noEmit",
-    "check": "npm run format:check && npm run lint:check && npm run type-check && npm run type-check:e2e && npm run test:coverage && npm run build-only"
+    "check": "npm run format:check && npm run lint:check && npm run type-check && npm run type-check:e2e && npm run test:coverage && npm run build-only",
+    "test:api": "playwright test --config playwright.api.config.ts"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
