@@ -14,7 +14,9 @@
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "lint:check": "oxlint . && eslint .",
+    "format:check": "prettier --check src/ config/ *.ts *.json README.md"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
@@ -54,6 +56,8 @@
     "vue-tsc": "^3.3.11"
   },
   "engines": {
-    "node": "^22.18.0 || >=24.12.0"
-  }
+    "node": "^22.18.0 || >=24.12.0",
+    "npm": ">=11 <12"
+  },
+  "packageManager": "npm@11.20.0"
 }
