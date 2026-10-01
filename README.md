@@ -52,6 +52,8 @@ npm run dev
 
 Open the URL printed in the terminal, normally **http://localhost:5173**.
 
+Sessions are kept in memory: refreshing the page requires login again. Use **Log out** to clear the current session.
+
 Vite forwards `/api` requests to the configured backend, so no backend CORS change is needed for local development. If requests fail, check that the backend and its database are running and that `.env` uses the correct port.
 
 ## Tests
@@ -79,19 +81,19 @@ npx playwright install chromium
 Run the browser tests:
 
 ```bash
-npm run test:e2e  # navigation and shared UI browser tests
+npm run test:e2e  # login, sessions, navigation, and shared UI
 npm run test:api  # API proxy tests with a test server
 ```
 
 These tests do not need the real backend. Keep ports **4173**, **4174**, **4180**, and **43123** available.
 
-To check login and a protected request against the real backend:
+To check login, protected requests, and account switching against the real backend:
 
 ```bash
 API_SMOKE_REAL=1 npm run test:api
 ```
 
-Run this against a local development database. It creates and leaves a dedicated test account. To reuse an existing account, set both `API_TEST_EMAIL` and `API_TEST_PASSWORD` in your shell environment. API test traces and screenshots are disabled to avoid saving credentials.
+Run this against a local development database. It creates and leaves dedicated test accounts. Set both `API_TEST_EMAIL` and `API_TEST_PASSWORD` to reuse an account for the login smoke test; the account-switching test still creates two isolated accounts. API test traces and screenshots are disabled to avoid saving credentials.
 
 ## Quality Checks
 

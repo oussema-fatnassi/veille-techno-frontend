@@ -1,5 +1,17 @@
 import { test, expect, type Route } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/users/me', (route) =>
+    route.fulfill({
+      json: {
+        id: 1,
+        name: 'Student',
+        email: 'student@example.com',
+      },
+    }),
+  )
+})
+
 for (const width of [390, 1440]) {
   test(`login supports keyboard validation and successful submission at ${width}px`, async ({
     page,
@@ -38,7 +50,7 @@ for (const width of [390, 1440]) {
     await expect(page).toHaveURL(/\/board$/)
     await expect(page.getByRole('heading', { name: 'My board' })).toBeVisible()
     expect(calls).toBe(1)
-    await page.getByRole('link', { name: 'Back to login' }).click()
+    await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page.getByLabel('Password')).toHaveValue('')
   })
 }

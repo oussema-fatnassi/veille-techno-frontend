@@ -74,6 +74,10 @@ async function handleSubmit() {
       <h1 id="login-title" class="text-2xl font-bold">Log in</h1>
       <p class="mt-2">Sign in to access your board.</p>
 
+      <p v-if="auth.sessionMessage" role="alert" class="mt-4 text-danger">
+        {{ auth.sessionMessage }}
+      </p>
+
       <form class="mt-6 space-y-4" novalidate @submit.prevent="handleSubmit">
         <BaseInput
           id="email"

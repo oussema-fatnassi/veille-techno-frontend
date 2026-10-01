@@ -15,7 +15,7 @@ test.beforeAll(async () => {
       response.end(JSON.stringify({ accessToken: 'browser-test-token' }))
     } else if (request.url === '/api/users/me') {
       response.writeHead(request.headers.authorization === 'Bearer browser-test-token' ? 200 : 401)
-      response.end(JSON.stringify({ name: 'API test user' }))
+      response.end(JSON.stringify({ id: 1, name: 'API test user', email: 'api@example.test' }))
     } else {
       response.writeHead(404)
       response.end('{}')
@@ -58,14 +58,7 @@ test('browser login and protected request through the frontend proxy', async ({ 
   await page.getByRole('button', { name: 'Log in' }).click()
   await expect(page).toHaveURL(/\/board$/)
 
-  const result = await page.evaluate(async () => {
-    const modulePath = '/src/composables/useApiClient.ts'
-    const { useApiClient } = await import(modulePath)
-    const profile = await useApiClient().get('/users/me')
-    // Keep tokens, credentials, and profile details out of test reports.
-    return { hasProfile: typeof profile.name === 'string' }
-  })
-  expect(result).toEqual({ hasProfile: true })
+  await expect(page.getByText('Signed in as', { exact: false })).toBeVisible()
   expect(received).toEqual(
     realApi
       ? []
@@ -74,6 +67,34 @@ test('browser login and protected request through the frontend proxy', async ({ 
           { path: '/api/users/me', authorization: 'Bearer browser-test-token' },
         ],
   )
+})
+
+test('real account A logout then account B keeps identities separate', async ({ page }) => {
+  // This opt-in check creates accounts in the local backend; CI uses controlled responses.
+  // eslint-disable-next-line playwright/no-skipped-test
+  test.skip(!realApi, 'Requires the real backend')
+  await page.goto('/login')
+  const accounts = ['A', 'B'].map((name) => ({
+    name: `F08 account ${name}`,
+    email: `f08-${randomUUID()}@example.test`,
+    password: `T1!${randomUUID().slice(0, 12)}`,
+  }))
+  await page.evaluate(async (accounts) => {
+    const modulePath = '/src/api/client.ts'
+    const { createApiClient } = await import(modulePath)
+    for (const account of accounts) await createApiClient().post('/auth/register', account)
+  }, accounts)
+  for (const account of accounts) {
+    await page.getByLabel('Email').fill(account.email)
+    await page.getByLabel('Password').fill(account.password)
+    await page.getByRole('button', { name: 'Log in' }).click()
+    await expect(page).toHaveURL(/\/board$/)
+    await expect(page.getByText('Signed in as')).toContainText(account.email)
+    await page.getByRole('button', { name: 'Log out' }).click()
+    await expect(page).toHaveURL(/\/login$/)
+    await expect(page.getByText(account.email, { exact: false })).toHaveCount(0)
+    await expect(page.getByLabel('Password')).toHaveValue('')
+  }
 })
 
 test('a timed-out request releases loading and shows a useful error', async ({ page }) => {

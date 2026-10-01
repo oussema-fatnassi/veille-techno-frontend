@@ -4,6 +4,7 @@ import { ApiError, normalizeApiError } from './errors'
 type RequestOptions = { signal?: AbortSignal }
 type ClientOptions = {
   getAccessToken?: () => string | null
+  getSessionVersion?: () => number
   onUnauthorized?: () => void
   timeout?: number
 }
@@ -26,32 +27,17 @@ export function createApiClient(options: ClientOptions = {}) {
   const transport = axios.create({ baseURL: '/api', timeout: options.timeout ?? 10_000 })
   const getAccessToken = options.getAccessToken ?? (() => null)
   let rejectedToken: string | null = null
+  let rejectedVersion: number | undefined
 
-  transport.interceptors.request.use((config) => {
-    const { publicRoute } = route(config.url!)
-    const token = getAccessToken()
-    if (!publicRoute && token) config.headers.set('Authorization', `Bearer ${token}`)
-    return config
-  })
-
-  transport.interceptors.response.use(
-    (response) => response,
-    (error: unknown) => {
-      const config = axios.isAxiosError(error) ? error.config : undefined
-      const normalized = normalizeApiError(error, config?.url === '/auth/login')
-      const authorization = config?.headers.get('Authorization')
+  transport.interceptors.request.use(
+    (config) => {
+      const { publicRoute } = route(config.url!)
       const token = getAccessToken()
-      if (
-        normalized.status === 401 &&
-        token &&
-        authorization === `Bearer ${token}` &&
-        rejectedToken !== token
-      ) {
-        rejectedToken = token
-        options.onUnauthorized?.()
-      }
-      return Promise.reject(normalized)
+      if (!publicRoute && token) config.headers.set('Authorization', `Bearer ${token}`)
+      return config
     },
+    undefined,
+    { synchronous: true },
   )
 
   async function request<T>(
@@ -61,13 +47,35 @@ export function createApiClient(options: ClientOptions = {}) {
     requestOptions?: RequestOptions,
   ): Promise<T> {
     // Reject unsupported destinations before dispatch, including absolute URLs and path traversal.
-    route(path)
-    const response = await transport.request<T>({
-      method,
-      url: path,
-      data,
-      signal: requestOptions?.signal,
-    })
+    const { publicRoute } = route(path)
+    const version = options.getSessionVersion?.()
+    const token = getAccessToken()
+    const isStale = () => version !== options.getSessionVersion?.()
+    let response
+    try {
+      response = await transport.request<T>({
+        method,
+        url: path,
+        data,
+        signal: requestOptions?.signal,
+      })
+    } catch (cause) {
+      if (isStale()) throw new ApiError('cancelled', 'Session changed.')
+      const error = normalizeApiError(cause, path === '/auth/login')
+      if (
+        !publicRoute &&
+        error.status === 401 &&
+        token &&
+        token === getAccessToken() &&
+        (rejectedToken !== token || rejectedVersion !== version)
+      ) {
+        rejectedToken = token
+        rejectedVersion = version
+        options.onUnauthorized?.()
+      }
+      throw error
+    }
+    if (isStale()) throw new ApiError('cancelled', 'Session changed.')
     if (response.status === 204) return undefined as T
     if (!String(response.headers['content-type']).includes('application/json')) {
       throw new ApiError(
