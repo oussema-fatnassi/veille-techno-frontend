@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import isEmail from 'validator/lib/isEmail'
 import BaseInput from '../components/ui/BaseInput.vue'
 import Button from 'primevue/button'
+import { RouterLink } from 'vue-router'
 
 const email = ref('')
 const password = ref('')
@@ -77,6 +78,13 @@ function handleSubmit() {
         />
         
         <Button type="submit" label="Log in" />
+
+        <p class="mt-4">
+          Don’t have an account?
+          <RouterLink :to="{ name: 'register' }" class="text-primary underline">
+            Create an account
+          </RouterLink>
+        </p>
       </form>
     </section>
   </main>
