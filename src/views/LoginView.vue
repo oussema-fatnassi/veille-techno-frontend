@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import isEmail from 'validator/lib/isEmail'
-import BaseInput from '../components/ui/BaseInput.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
 import Button from 'primevue/button'
 import { RouterLink } from 'vue-router'
 
