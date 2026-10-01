@@ -54,7 +54,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Browser smoke test
+      - name: Navigation and shared UI browser tests
         run: npx --yes npm@11.20.0 run test:e2e
 
       - name: API proxy browser tests
@@ -69,5 +69,6 @@ jobs:
             coverage/
             playwright-report/
             test-results/
+            docs/ui/*.png
           if-no-files-found: ignore
           retention-days: 7

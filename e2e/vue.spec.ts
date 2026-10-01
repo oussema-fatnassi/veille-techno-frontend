@@ -19,10 +19,18 @@ for (const width of [390, 1440]) {
     await page.getByRole('button', { name: 'Create account' }).click()
     await expect(page.getByLabel('Name', { exact: true })).toBeFocused()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    await page.screenshot({ path: `docs/ui/registration-${width}.png`, fullPage: true, animations: 'disabled' })
+    await page.screenshot({
+      path: `docs/ui/registration-${width}.png`,
+      fullPage: true,
+      animations: 'disabled',
+    })
     await page.getByRole('link', { name: 'Log in', exact: true }).click()
     await expect(page).toHaveURL(/\/login$/)
-    await page.screenshot({ path: `docs/ui/login-${width}.png`, fullPage: true, animations: 'disabled' })
+    await page.screenshot({
+      path: `docs/ui/login-${width}.png`,
+      fullPage: true,
+      animations: 'disabled',
+    })
     await page.goto('/board')
     await expect(page.getByRole('heading', { name: 'My board' })).toBeVisible()
     await page.getByRole('link', { name: 'Back to login' }).click()

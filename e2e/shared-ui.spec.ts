@@ -12,7 +12,11 @@ for (const width of [390, 1440]) {
     await expect(page.getByRole('button', { name: 'Disabled action' })).toBeDisabled()
     await expect(page.getByLabel('Invalid field')).toHaveAttribute('aria-invalid', 'true')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    await page.screenshot({ path: `docs/ui/controls-${width}.png`, fullPage: true, animations: 'disabled' })
+    await page.screenshot({
+      path: `docs/ui/controls-${width}.png`,
+      fullPage: true,
+      animations: 'disabled',
+    })
 
     const opener = page.getByRole('button', { name: 'Open dialog' })
     await opener.focus()
@@ -33,7 +37,11 @@ for (const width of [390, 1440]) {
     const box = await dialog.boundingBox()
     expect(box!.x).toBeGreaterThanOrEqual(0)
     expect(box!.x + box!.width).toBeLessThanOrEqual(width)
-    await page.screenshot({ path: `docs/ui/dialog-${width}.png`, fullPage: true, animations: 'disabled' })
+    await page.screenshot({
+      path: `docs/ui/dialog-${width}.png`,
+      fullPage: true,
+      animations: 'disabled',
+    })
     await page.keyboard.press('Escape')
     await expect(dialog).toBeHidden()
     await expect(opener).toBeFocused()
