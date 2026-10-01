@@ -24,6 +24,24 @@
   --radius-panel: 0.75rem;
 }
 
+.app-dark {
+  color-scheme: dark;
+
+  --color-page: #09090b;
+  --color-surface: #18181b;
+
+  --color-content: #f4f4f5;
+  --color-muted: #a1a1aa;
+  --color-outline: #71717a;
+
+  --color-danger: #f87171;
+  --color-success: #4ade80;
+
+  --color-primary: var(--p-primary-color);
+  --color-primary-hover: var(--p-primary-hover-color);
+  --color-on-primary: var(--p-primary-contrast-color);
+}
+
 @layer base {
   body {
     @apply bg-page font-sans text-content antialiased;
