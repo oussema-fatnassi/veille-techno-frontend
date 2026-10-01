@@ -79,11 +79,11 @@ npx playwright install chromium
 Run the browser tests:
 
 ```bash
-npm run test:e2e  # app smoke test
+npm run test:e2e  # navigation and shared UI browser tests
 npm run test:api  # API proxy tests with a test server
 ```
 
-These tests do not need the real backend. Keep ports **4173**, **4174**, and **43123** available.
+These tests do not need the real backend. Keep ports **4173**, **4174**, **4180**, and **43123** available.
 
 To check login and a protected request against the real backend:
 

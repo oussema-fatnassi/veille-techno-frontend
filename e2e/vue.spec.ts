@@ -1,8 +1,45 @@
 import { test, expect } from '@playwright/test'
 
-// See here how to get started:
-// https://playwright.dev/docs/intro
-test('visits the app root url', async ({ page }) => {
-  await page.goto('/')
-  await expect(page.locator('h1')).toHaveText('You did it!')
-})
+for (const width of [390, 1440]) {
+  test(`navigation and forms work at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/login$/)
+    await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible()
+    await page.getByRole('button', { name: 'Log in' }).click()
+    await expect(page.getByLabel('Email')).toBeFocused()
+    await expect(page.getByText('Email is required.', { exact: true })).toBeVisible()
+    await page.getByLabel('Email').fill('learner@example.com')
+    await page.getByRole('button', { name: 'Log in' }).click()
+    await expect(page.getByLabel('Password')).toBeFocused()
+    const registration = page.getByRole('link', { name: 'Create an account' })
+    await registration.focus()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\/register$/)
+    await page.getByRole('button', { name: 'Create account' }).click()
+    await expect(page.getByLabel('Name', { exact: true })).toBeFocused()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.screenshot({
+      path: `docs/ui/registration-${width}.png`,
+      fullPage: true,
+      animations: 'disabled',
+    })
+    await page.getByRole('link', { name: 'Log in', exact: true }).click()
+    await expect(page).toHaveURL(/\/login$/)
+    await page.screenshot({
+      path: `docs/ui/login-${width}.png`,
+      fullPage: true,
+      animations: 'disabled',
+    })
+    await page.goto('/board')
+    await expect(page.getByRole('heading', { name: 'My board' })).toBeVisible()
+    await page.getByRole('link', { name: 'Back to login' }).click()
+    await expect(page).toHaveURL(/\/login$/)
+    await page.goto('/unknown/nested/page')
+    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
+    const back = page.getByRole('link', { name: 'Back to login' })
+    await back.focus()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\/login$/)
+  })
+}

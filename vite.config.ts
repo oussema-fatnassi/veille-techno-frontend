@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [vue(), vueDevTools(), tailwindcss()],
+    optimizeDeps: { include: ['axios'] },
     server: { proxy },
     preview: { proxy },
     resolve: {

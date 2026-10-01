@@ -36,7 +36,8 @@ test.afterAll(async () => {
 })
 
 test('browser login and protected request through the frontend proxy', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/login')
+  await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible()
   const credentials = {
     email: process.env.API_TEST_EMAIL || `f05-${randomUUID()}@example.test`,
     password: process.env.API_TEST_PASSWORD || `T1!${randomUUID().slice(0, 12)}`,
@@ -73,7 +74,8 @@ test('browser login and protected request through the frontend proxy', async ({ 
 })
 
 test('a timed-out request releases loading and shows a useful error', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/login')
+  await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible()
   await page.route('**/api/lists', async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 250))
     await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
