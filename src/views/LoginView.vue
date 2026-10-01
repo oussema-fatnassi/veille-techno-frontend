@@ -3,7 +3,13 @@ import { ref } from 'vue'
 import isEmail from 'validator/lib/isEmail'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import Button from 'primevue/button'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useApiRequest } from '@/composables/useApiRequest'
+
+const router = useRouter()
+const auth = useAuthStore()
+const { loading, error, execute } = useApiRequest()
 
 const email = ref('')
 const password = ref('')
@@ -29,7 +35,9 @@ function validatePassword() {
   passwordError.value = password.value.length === 0 ? 'Password is required.' : ''
 }
 
-function handleSubmit() {
+async function handleSubmit() {
+  if (loading.value) return
+
   submitted.value = true
   validateEmail()
   validatePassword()
@@ -38,10 +46,25 @@ function handleSubmit() {
     emailInput.value?.focus()
     return
   }
+
   if (passwordError.value) {
     passwordInput.value?.focus()
     return
   }
+
+  const result = await execute(() =>
+    auth.signIn({
+      email: email.value,
+      password: password.value,
+    }),
+  )
+
+  if (!result.ok) return
+
+  password.value = ''
+  submitted.value = false
+
+  await router.replace({ name: 'board' })
 }
 </script>
 
@@ -76,7 +99,16 @@ function handleSubmit() {
           @input="validatePassword"
         />
 
-        <Button type="submit" label="Log in" />
+        <p v-if="error" role="alert" class="text-sm text-danger">
+          {{ error.message }}
+        </p>
+
+        <Button
+          type="submit"
+          :label="loading ? 'Logging in…' : 'Log in'"
+          :loading="loading"
+          :disabled="loading"
+        />
 
         <p class="mt-4">
           Don’t have an account?

@@ -23,7 +23,7 @@ export async function login(
   if (
     !response ||
     typeof response.accessToken !== 'string' ||
-    response.accessToken.trim()
+    !response.accessToken.trim()
   ) {
     throw new ApiError(
       'unknown',
