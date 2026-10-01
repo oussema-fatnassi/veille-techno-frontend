@@ -7,13 +7,9 @@ import { RouterLink } from 'vue-router'
     <header>
       <h1 class="text-2xl font-bold">My board</h1>
 
-      <RouterLink
-        :to="{ name: 'login' }"
-        class="mt-2 inline-block text-primary underline"
-      >
+      <RouterLink :to="{ name: 'login' }" class="mt-2 inline-block text-primary underline">
         Back to login
       </RouterLink>
     </header>
-
   </main>
 </template>

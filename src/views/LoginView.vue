@@ -42,7 +42,6 @@ function handleSubmit() {
     passwordInput.value?.focus()
     return
   }
-
 }
 </script>
 
@@ -76,7 +75,7 @@ function handleSubmit() {
           required
           @input="validatePassword"
         />
-        
+
         <Button type="submit" label="Log in" />
 
         <p class="mt-4">

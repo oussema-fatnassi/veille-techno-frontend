@@ -8,10 +8,7 @@ import { RouterLink } from 'vue-router'
 
     <p class="mt-2">The page you are looking for does not exist.</p>
 
-    <RouterLink
-      :to="{ name: 'login' }"
-      class="mt-4 inline-block text-primary underline"
-    >
+    <RouterLink :to="{ name: 'login' }" class="mt-4 inline-block text-primary underline">
       Back to login
     </RouterLink>
   </main>

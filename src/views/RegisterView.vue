@@ -73,7 +73,6 @@ function handleSubmit() {
     passwordInput.value?.focus()
     return
   }
-
 }
 </script>
 
@@ -123,9 +122,7 @@ function handleSubmit() {
 
       <p class="mt-4">
         Already have an account?
-        <RouterLink :to="{ name: 'login' }" class="text-primary underline">
-          Log in
-        </RouterLink>
+        <RouterLink :to="{ name: 'login' }" class="text-primary underline"> Log in </RouterLink>
       </p>
     </section>
   </main>
