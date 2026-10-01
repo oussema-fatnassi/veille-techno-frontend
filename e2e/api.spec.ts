@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http'
 import { randomUUID } from 'node:crypto'
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
 const realApi = process.env.API_SMOKE_REAL === '1'
 let backend: Server
@@ -35,34 +35,37 @@ test.afterAll(async () => {
   )
 })
 
+async function prepareTestAccount(page: Page, credentials: { email: string; password: string }) {
+  if (realApi && !process.env.API_TEST_EMAIL) {
+    await page.evaluate(async (credentials) => {
+      const modulePath = '/src/api/client.ts'
+      const { createApiClient } = await import(modulePath)
+      await createApiClient().post('/auth/register', { ...credentials, name: 'F07 API test' })
+    }, credentials)
+  }
+}
+
 test('browser login and protected request through the frontend proxy', async ({ page }) => {
   await page.goto('/login')
   await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible()
   const credentials = {
-    email: process.env.API_TEST_EMAIL || `f05-${randomUUID()}@example.test`,
+    email: process.env.API_TEST_EMAIL || `f07-${randomUUID()}@example.test`,
     password: process.env.API_TEST_PASSWORD || `T1!${randomUUID().slice(0, 12)}`,
   }
-  const result = await page.evaluate(
-    async ({ realApi, credentials, existingAccount }) => {
-      const modulePath = '/src/api/client.ts'
-      const { createApiClient } = await import(modulePath)
-      let token: string | null = null
-      const client = createApiClient({ getAccessToken: () => token })
-      if (realApi && !existingAccount) {
-        await client.post('/auth/register', { ...credentials, name: 'F05 API test' })
-      }
-      const login = await client.post('/auth/login', credentials)
-      token = login.accessToken
-      const profile = await client.get('/users/me')
-      // Only return non-sensitive evidence from the browser.
-      return {
-        authenticated: typeof token === 'string' && token.length > 0,
-        hasProfile: typeof profile.name === 'string',
-      }
-    },
-    { realApi, credentials, existingAccount: !!process.env.API_TEST_EMAIL },
-  )
-  expect(result).toEqual({ authenticated: true, hasProfile: true })
+  await prepareTestAccount(page, credentials)
+  await page.getByLabel('Email').fill(credentials.email)
+  await page.getByLabel('Password').fill(credentials.password)
+  await page.getByRole('button', { name: 'Log in' }).click()
+  await expect(page).toHaveURL(/\/board$/)
+
+  const result = await page.evaluate(async () => {
+    const modulePath = '/src/composables/useApiClient.ts'
+    const { useApiClient } = await import(modulePath)
+    const profile = await useApiClient().get('/users/me')
+    // Keep tokens, credentials, and profile details out of test reports.
+    return { hasProfile: typeof profile.name === 'string' }
+  })
+  expect(result).toEqual({ hasProfile: true })
   expect(received).toEqual(
     realApi
       ? []

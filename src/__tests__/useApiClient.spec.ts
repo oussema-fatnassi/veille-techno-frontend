@@ -16,9 +16,7 @@ describe('authenticated API client', () => {
     const authorizations: (string | null)[] = []
 
     server.use(
-      http.post(`${API}/auth/login`, () =>
-        HttpResponse.json({ accessToken: 'test-token' }),
-      ),
+      http.post(`${API}/auth/login`, () => HttpResponse.json({ accessToken: 'test-token' })),
       http.get(`${API}/users/me`, ({ request }) => {
         authorizations.push(request.headers.get('Authorization'))
 
@@ -42,10 +40,6 @@ describe('authenticated API client', () => {
 
     await api.get('/users/me')
 
-    expect(authorizations).toEqual([
-      null,
-      'Bearer test-token',
-      null,
-    ])
+    expect(authorizations).toEqual([null, 'Bearer test-token', null])
   })
 })

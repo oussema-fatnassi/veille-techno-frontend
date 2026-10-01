@@ -25,9 +25,7 @@ describe('auth store', () => {
 
   it('saves the token after a successful login', async () => {
     server.use(
-      http.post(`${API}/auth/login`, () =>
-        HttpResponse.json({ accessToken: 'test-token' }),
-      ),
+      http.post(`${API}/auth/login`, () => HttpResponse.json({ accessToken: 'test-token' })),
     )
 
     const auth = useAuthStore()
@@ -41,10 +39,7 @@ describe('auth store', () => {
   it('stays unauthenticated when login fails', async () => {
     server.use(
       http.post(`${API}/auth/login`, () =>
-        HttpResponse.json(
-          { message: 'Unauthorized' },
-          { status: 401 },
-        ),
+        HttpResponse.json({ message: 'Unauthorized' }, { status: 401 }),
       ),
     )
 

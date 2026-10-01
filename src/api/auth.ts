@@ -1,5 +1,5 @@
-import { createApiClient } from "./client"
-import { ApiError } from "./errors"
+import { createApiClient } from './client'
+import { ApiError } from './errors'
 
 export interface LoginCredentials {
   email: string
@@ -12,23 +12,11 @@ export interface LoginResponse {
 
 const client = createApiClient()
 
-export async function login(
-  credentials: LoginCredentials
-): Promise<LoginResponse> {
-  const response = await client.post<LoginResponse>(
-    '/auth/login',
-    credentials
-  )
+export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
+  const response = await client.post<LoginResponse>('/auth/login', credentials)
 
-  if (
-    !response ||
-    typeof response.accessToken !== 'string' ||
-    !response.accessToken.trim()
-  ) {
-    throw new ApiError(
-      'unknown',
-      'The login response is invalid. Please try again.'
-    )
+  if (!response || typeof response.accessToken !== 'string' || !response.accessToken.trim()) {
+    throw new ApiError('unknown', 'The login response is invalid. Please try again.')
   }
 
   return response

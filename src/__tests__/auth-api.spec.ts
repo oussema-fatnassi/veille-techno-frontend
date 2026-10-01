@@ -33,10 +33,7 @@ describe('login API', () => {
   it('returns a generic error for invalid credentials', async () => {
     server.use(
       http.post(`${API}/auth/login`, () =>
-        HttpResponse.json(
-          { message: 'Unauthorized' },
-          { status: 401 },
-        ),
+        HttpResponse.json({ message: 'Unauthorized' }, { status: 401 }),
       ),
     )
 
@@ -53,11 +50,7 @@ describe('login API', () => {
     { accessToken: '' },
     { accessToken: '   ' },
   ])('rejects an invalid login response: %j', async (body) => {
-    server.use(
-      http.post(`${API}/auth/login`, () =>
-        HttpResponse.json(body),
-      ),
-    )
+    server.use(http.post(`${API}/auth/login`, () => HttpResponse.json(body)))
 
     await expect(login(credentials)).rejects.toMatchObject({
       kind: 'unknown',
