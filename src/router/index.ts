@@ -27,6 +27,7 @@ export const routes = [
   {
     path: '/board',
     name: 'board',
+    meta: { requiresAuth: true },
     component: BoardView,
   },
 ]
