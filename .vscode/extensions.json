@@ -1,5 +1,6 @@
 {
   "recommendations": [
+    "bradlc.vscode-tailwindcss",
     "Vue.volar",
     "vitest.explorer",
     "ms-playwright.playwright",
