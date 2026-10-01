@@ -32,8 +32,7 @@ for (const width of [390, 1440]) {
       animations: 'disabled',
     })
     await page.goto('/board')
-    await expect(page.getByRole('heading', { name: 'My board' })).toBeVisible()
-    await page.getByRole('link', { name: 'Back to login' }).click()
+    await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible()
     await expect(page).toHaveURL(/\/login$/)
     await page.goto('/unknown/nested/page')
     await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
