@@ -1,5 +1,6 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { createPinia } from 'pinia'
 import { describe, it, expect } from 'vitest'
 import App from '../App.vue'
 import { routes } from '../router'
@@ -14,7 +15,7 @@ describe('application navigation', () => {
     const router = createRouter({ history: createMemoryHistory(), routes })
     await router.push(path)
     await router.isReady()
-    const wrapper = mount(App, { global: { plugins: [router] } })
+    const wrapper = mount(App, { global: { plugins: [createPinia(), router] } })
     await flushPromises()
     expect(router.currentRoute.value.path).toBe(destination)
     expect(wrapper.get('h1').text()).toBe(heading)
