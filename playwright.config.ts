@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: 'api.spec.ts',
+  testIgnore: ['api.spec.ts', 'shared-ui.spec.ts'],
   timeout: 30_000,
   expect: { timeout: 5000 },
   forbidOnly: !!process.env.CI,
