@@ -21,3 +21,14 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 
   return response
 }
+
+export interface RegistrationCredentials extends LoginCredentials {
+  name: string
+}
+
+export async function register(
+  credentials: RegistrationCredentials,
+  signal?: AbortSignal,
+): Promise<void> {
+  await client.post('/auth/register', credentials, { signal })
+}

@@ -5,7 +5,7 @@ export type ApiErrorKind =
   | 'unauthorized'
   | 'forbidden'
   | 'not-found'
-  | 'conflict'
+  | 'rate-limited'
   | 'unavailable'
   | 'cancelled'
   | 'configuration'
@@ -62,7 +62,7 @@ export function normalizeApiError(error: unknown, login = false): ApiError {
     return new ApiError('forbidden', 'You do not have access to this resource.', status)
   if (status === 404)
     return new ApiError('not-found', 'This resource no longer exists. Refresh the data.', status)
-  if (status === 409)
-    return new ApiError('conflict', 'This email address is already in use.', status)
+  if (status === 429)
+    return new ApiError('rate-limited', 'Too many attempts. Try again in a minute.', status)
   return new ApiError('unknown', 'The request failed. Please try again.', status)
 }

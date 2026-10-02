@@ -81,19 +81,19 @@ npx playwright install chromium
 Run the browser tests:
 
 ```bash
-npm run test:e2e  # login, sessions, navigation, and shared UI
+npm run test:e2e  # registration, login, sessions, navigation, and shared UI
 npm run test:api  # API proxy tests with a test server
 ```
 
 These tests do not need the real backend. Keep ports **4173**, **4174**, **4180**, and **43123** available.
 
-To check login, protected requests, and account switching against the real backend:
+To check registration, login, protected requests, and account switching against the real backend:
 
 ```bash
 API_SMOKE_REAL=1 npm run test:api
 ```
 
-Run this against a local development database. It creates and leaves dedicated test accounts. Set both `API_TEST_EMAIL` and `API_TEST_PASSWORD` to reuse an account for the login smoke test; the account-switching test still creates two isolated accounts. API test traces and screenshots are disabled to avoid saving credentials.
+Run this against a local development database. It creates and leaves dedicated test accounts. Set both `API_TEST_EMAIL` and `API_TEST_PASSWORD` to reuse an account for the login smoke test; the account-switching test still creates two isolated accounts, and the registration test creates one more. API test traces and screenshots are disabled to avoid saving credentials.
 
 ## Quality Checks
 

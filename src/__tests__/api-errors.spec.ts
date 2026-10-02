@@ -13,7 +13,7 @@ describe('API error messages', () => {
     [401, 'unauthorized', 'Your session has expired. Please log in again.'],
     [403, 'forbidden', 'You do not have access to this resource.'],
     [404, 'not-found', 'This resource no longer exists. Refresh the data.'],
-    [409, 'conflict', 'This email address is already in use.'],
+    [429, 'rate-limited', 'Too many attempts. Try again in a minute.'],
     [500, 'unavailable', 'Cannot reach the service.'],
     [503, 'unavailable', 'Cannot reach the service.'],
     [418, 'unknown', 'The request failed.'],
