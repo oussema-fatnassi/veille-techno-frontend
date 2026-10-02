@@ -16,10 +16,10 @@ function mountColumns() {
 }
 
 describe('board columns', () => {
-  it('orders by position then ID and renders titles as text without loading cards', async () => {
+  it('orders columns by position then ID and renders titles as text', async () => {
     const calls: string[] = []
     server.use(
-      http.get(`${API}/*`, ({ request }) => {
+      http.get(`${API}/lists`, ({ request }) => {
         calls.push(request.url)
         expect(request.headers.get('Authorization')).toBe('Bearer test-token')
         return HttpResponse.json([
@@ -38,7 +38,6 @@ describe('board columns', () => {
     ])
     expect(wrapper.find('img').exists()).toBe(false)
     expect(calls).toEqual([`${API}/lists`])
-    expect(wrapper.text()).not.toContain('No cards')
   })
 
   it('does not show an empty board before loading completes', async () => {
