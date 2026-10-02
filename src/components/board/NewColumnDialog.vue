@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
-import { columnTitleError } from '@/validation/column'
+import { getTitleError } from '@/validation/title'
 import Button from 'primevue/button'
 import BaseDialog from '@/components/ui/BaseDialog.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -24,7 +24,7 @@ const controller = new AbortController()
 
 function validateTitle() {
   if (!submitted.value) return
-  titleError.value = columnTitleError(title.value)
+  titleError.value = getTitleError(title.value)
 }
 
 async function submit() {

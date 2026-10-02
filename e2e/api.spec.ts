@@ -173,6 +173,44 @@ test('real account A logout then account B keeps identities separate', async ({ 
     await expect(
       page.getByRole('region', { name: 'Board columns', exact: true }).getByRole('listitem'),
     ).toHaveText([`${account.name} private task`, 'Keep this task during rename'])
+    // F12: clear a description without changing the title, then edit and verify persistence.
+    await page.getByRole('button', { name: 'Keep this task during rename', exact: true }).click()
+    await expect(page.getByLabel('Description (optional)', { exact: true })).toHaveValue(
+      'F22 dedicated data',
+    )
+    await page.getByLabel('Description (optional)', { exact: true }).fill('')
+    await page.getByRole('button', { name: 'Save changes', exact: true }).click()
+    await expect(page.getByRole('dialog')).toBeHidden()
+    await page.getByRole('button', { name: 'Keep this task during rename', exact: true }).click()
+    await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
+      'Keep this task during rename',
+    )
+    await expect(page.getByLabel('Description (optional)', { exact: true })).toHaveValue('')
+    await page.getByLabel('Title', { exact: true }).fill(`Edited by ${account.name}`)
+    const description = '<img src=x onerror=alert(1)>\nPlain task description'
+    await page.getByLabel('Description (optional)', { exact: true }).fill(description)
+    await page.getByRole('button', { name: 'Save changes', exact: true }).click()
+    await expect(page.getByRole('dialog')).toBeHidden()
+    await expect(
+      page.getByRole('button', { name: `Edited by ${account.name}`, exact: true }),
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Log out', exact: true }).click()
+    await page.getByLabel('Email').fill(account.email)
+    await page.getByLabel('Password').fill(account.password)
+    await page.getByRole('button', { name: 'Log in', exact: true }).click()
+    await page.getByRole('button', { name: `Edited by ${account.name}`, exact: true }).click()
+    await expect(page.getByLabel('Title', { exact: true })).toHaveValue(`Edited by ${account.name}`)
+    await expect(page.getByLabel('Description (optional)', { exact: true })).toHaveValue(
+      description,
+    )
+    await expect(page.getByRole('dialog').locator('img')).toHaveCount(0)
+    await page.getByLabel('Title', { exact: true }).fill('Discarded edit')
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(page.getByRole('dialog')).toBeHidden()
+    await page.getByRole('button', { name: `Edited by ${account.name}`, exact: true }).click()
+    await expect(page.getByLabel('Title', { exact: true })).toHaveValue(`Edited by ${account.name}`)
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(page.getByRole('dialog')).toBeHidden()
     // Keep the existing empty-column deletion check alongside populated columns.
     await page.getByRole('button', { name: 'New column', exact: true }).click()
     await page.getByLabel('Title', { exact: true }).fill('Empty column')

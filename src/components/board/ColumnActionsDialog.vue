@@ -7,7 +7,7 @@ import { deleteColumn, renameColumn, type BoardColumn } from '@/api/lists'
 import { useApiClient } from '@/composables/useApiClient'
 import { useApiRequest } from '@/composables/useApiRequest'
 import { useAuthStore } from '@/stores/auth'
-import { columnTitleError } from '@/validation/column'
+import { getTitleError } from '@/validation/title'
 
 const props = defineProps<{
   column: BoardColumn | null
@@ -33,7 +33,7 @@ const titleInput = ref<InstanceType<typeof BaseInput> | null>(null)
 const controller = new AbortController()
 
 function validateTitle() {
-  if (submitted.value) titleError.value = columnTitleError(title.value)
+  if (submitted.value) titleError.value = getTitleError(title.value)
 }
 
 async function submit() {

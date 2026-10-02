@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
-import { getTasks, type BoardTask } from '@/api/cards'
+import { getTasks, type BoardTask, type TaskDetails } from '@/api/cards'
+import TaskEditorDialog from './TaskEditorDialog.vue'
 import { useApiClient } from '@/composables/useApiClient'
 import { useApiRequest } from '@/composables/useApiRequest'
 import { useAuthStore } from '@/stores/auth'
@@ -13,13 +14,37 @@ const tasks = ref<BoardTask[] | null>(null)
 const { loading, error, execute } = useApiRequest()
 const controller = new AbortController()
 const region = ref<HTMLElement | null>(null)
+const selectedTaskId = ref<number | null>(null)
+let taskRevision = 0
+
+function updateTask(task: TaskDetails) {
+  if (task.listId !== props.columnId) {
+    removeTask(task.id)
+    return
+  }
+  taskRevision++
+  tasks.value =
+    tasks.value
+      ?.map((item) => (item.id === task.id ? task : item))
+      .sort((a, b) => a.position - b.position || a.id - b.id) ?? null
+}
+function removeTask(id: number) {
+  taskRevision++
+  tasks.value = tasks.value?.filter((task) => task.id !== id) ?? null
+}
+function closeEditor() {
+  selectedTaskId.value = null
+  if (document.activeElement === document.body) region.value?.focus()
+}
 
 async function loadTasks(retry = false) {
   if (loading.value || controller.signal.aborted) return
   const version = auth.sessionVersion
+  const revision = taskRevision
   const result = await execute(() => getTasks(api, props.columnId, controller.signal))
   if (controller.signal.aborted || version !== auth.sessionVersion) return
-  if (result.ok) tasks.value = result.data
+  // A refresh started before an edit must not overwrite its confirmed result.
+  if (result.ok && revision === taskRevision) tasks.value = result.data
   await nextTick()
   if (retry && document.activeElement === document.body) region.value?.focus()
 }
@@ -28,6 +53,7 @@ watch(
   () => auth.sessionVersion,
   () => {
     tasks.value = null
+    selectedTaskId.value = null
     controller.abort()
   },
   { flush: 'sync' },
@@ -60,13 +86,24 @@ onMounted(() => loadTasks())
     </div>
     <p v-else-if="tasks?.length === 0" class="text-sm">No tasks yet.</p>
     <ul v-else-if="tasks" class="space-y-2">
-      <li
-        v-for="task in tasks"
-        :key="task.id"
-        class="rounded border border-outline p-3 text-sm whitespace-pre-wrap wrap-anywhere"
-      >
-        {{ task.title }}
+      <li v-for="task in tasks" :key="task.id">
+        <button
+          type="button"
+          class="w-full cursor-pointer rounded border border-outline p-3 text-left text-sm whitespace-pre-wrap wrap-anywhere hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-primary"
+          @click="selectedTaskId = task.id"
+        >
+          {{ task.title }}
+        </button>
       </li>
     </ul>
+    <TaskEditorDialog
+      v-if="selectedTaskId !== null"
+      :key="selectedTaskId"
+      :task-id="selectedTaskId"
+      @updated="updateTask"
+      @removed="removeTask"
+      @reconcile="loadTasks()"
+      @closed="closeEditor"
+    />
   </section>
 </template>
