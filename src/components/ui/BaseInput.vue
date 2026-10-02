@@ -8,6 +8,7 @@ withDefaults(
     label: string
     type?: 'text' | 'email' | 'password'
     autocomplete?: string
+    autofocus?: boolean
     error?: string
     required?: boolean
   }>(),
@@ -15,6 +16,7 @@ withDefaults(
     type: 'text',
     error: '',
     required: false,
+    autofocus: false,
   },
 )
 
@@ -44,6 +46,7 @@ defineExpose({ focus })
       :name="id"
       :type="type"
       :autocomplete="autocomplete"
+      :autofocus="autofocus"
       :required="required"
       :invalid="!!error"
       :aria-invalid="!!error"
