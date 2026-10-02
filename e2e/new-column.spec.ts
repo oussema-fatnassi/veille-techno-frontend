@@ -9,6 +9,7 @@ async function login(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/lists/*/cards', (route) => route.fulfill({ json: [] }))
   await page.route('**/api/auth/login', (route) =>
     route.fulfill({ json: { accessToken: 'test-token' } }),
   )

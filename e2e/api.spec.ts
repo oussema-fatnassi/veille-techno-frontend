@@ -90,8 +90,13 @@ test('real account A logout then account B keeps identities separate', async ({ 
         email: account.email,
         password: account.password,
       })
-      await createApiClient({ getAccessToken: () => accessToken }).post('/lists', {
+      const client = createApiClient({ getAccessToken: () => accessToken })
+      const column = await client.post('/lists', {
         title: `${account.name} column`,
+        position: 0,
+      })
+      await client.post(`/lists/${column.id}/cards`, {
+        title: `${account.name} private task`,
         position: 0,
       })
     }
@@ -103,6 +108,9 @@ test('real account A logout then account B keeps identities separate', async ({ 
     await expect(page).toHaveURL(/\/board$/)
     await expect(page.getByText('Signed in as')).toContainText(account.email)
     await expect(page.getByRole('heading', { level: 3 })).toHaveText([`${account.name} column`])
+    await expect(
+      page.getByRole('region', { name: 'Board columns', exact: true }).getByRole('listitem'),
+    ).toHaveText([`${account.name} private task`])
     await page.getByRole('button', { name: 'New column', exact: true }).click()
     await page.getByLabel('Title', { exact: true }).fill(`Created by ${account.name}`)
     await page.getByRole('button', { name: 'Create column', exact: true }).click()
@@ -162,7 +170,17 @@ test('real account A logout then account B keeps identities separate', async ({ 
       { account, seeded },
     )
     expect(preserved).toEqual([seeded.card])
-    for (const title of [`Renamed by ${account.name}`, `${account.name} column`]) {
+    await expect(
+      page.getByRole('region', { name: 'Board columns', exact: true }).getByRole('listitem'),
+    ).toHaveText([`${account.name} private task`, 'Keep this task during rename'])
+    // Keep the existing empty-column deletion check alongside populated columns.
+    await page.getByRole('button', { name: 'New column', exact: true }).click()
+    await page.getByLabel('Title', { exact: true }).fill('Empty column')
+    await page.getByRole('button', { name: 'Create column', exact: true }).click()
+    await expect(
+      page.getByRole('region', { name: 'Tasks in Empty column', exact: true }),
+    ).toContainText('No tasks yet.')
+    for (const title of [`Renamed by ${account.name}`, `${account.name} column`, 'Empty column']) {
       await page.getByRole('button', { name: `Delete ${title}`, exact: true }).click()
       await expect(page.getByRole('dialog')).toContainText(
         'All its tasks will be permanently deleted.',
