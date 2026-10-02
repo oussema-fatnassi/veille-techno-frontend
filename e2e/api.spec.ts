@@ -72,6 +72,8 @@ test('browser login and protected request through the frontend proxy', async ({ 
 })
 
 test('real account A logout then account B keeps identities separate', async ({ page }) => {
+  // This test now covers creation, editing, persistence, and deletion for both accounts.
+  test.setTimeout(60_000)
   // The isolated runner creates disposable accounts; CI uses controlled responses.
   // eslint-disable-next-line playwright/no-skipped-test
   test.skip(!realApi, 'Requires the real backend')
@@ -173,6 +175,26 @@ test('real account A logout then account B keeps identities separate', async ({ 
     await expect(
       page.getByRole('region', { name: 'Board columns', exact: true }).getByRole('listitem'),
     ).toHaveText([`${account.name} private task`, 'Keep this task during rename'])
+    for (const columnTitle of [`${account.name} column`, `Renamed by ${account.name}`]) {
+      await page.getByRole('button', { name: `New task in ${columnTitle}`, exact: true }).click()
+      await page.getByLabel('Title', { exact: true }).fill(`Created in ${columnTitle}`)
+      const initialDescription =
+        columnTitle === `${account.name} column` ? 'Optional creation details' : ''
+      await page.getByLabel('Description (optional)', { exact: true }).fill(initialDescription)
+      await page.getByRole('button', { name: 'Create task', exact: true }).click()
+      await expect(page.getByRole('dialog')).toBeHidden()
+      await expect(
+        page
+          .getByRole('region', { name: `Tasks in ${columnTitle}`, exact: true })
+          .getByRole('listitem'),
+      ).toHaveCount(2)
+      await page.getByRole('button', { name: `Created in ${columnTitle}`, exact: true }).click()
+      await expect(page.getByLabel('Description (optional)', { exact: true })).toHaveValue(
+        initialDescription,
+      )
+      await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+      await expect(page.getByRole('dialog')).toBeHidden()
+    }
     // F12: clear a description without changing the title, then edit and verify persistence.
     await page.getByRole('button', { name: 'Keep this task during rename', exact: true }).click()
     await expect(page.getByLabel('Description (optional)', { exact: true })).toHaveValue(
@@ -198,6 +220,16 @@ test('real account A logout then account B keeps identities separate', async ({ 
     await page.getByLabel('Email').fill(account.email)
     await page.getByLabel('Password').fill(account.password)
     await page.getByRole('button', { name: 'Log in', exact: true }).click()
+    await expect(
+      page
+        .getByRole('region', { name: `Tasks in ${account.name} column`, exact: true })
+        .getByRole('listitem'),
+    ).toHaveText([`${account.name} private task`, `Created in ${account.name} column`])
+    await expect(
+      page
+        .getByRole('region', { name: `Tasks in Renamed by ${account.name}`, exact: true })
+        .getByRole('listitem'),
+    ).toHaveText([`Edited by ${account.name}`, `Created in Renamed by ${account.name}`])
     await page.getByRole('button', { name: `Edited by ${account.name}`, exact: true }).click()
     await expect(page.getByLabel('Title', { exact: true })).toHaveValue(`Edited by ${account.name}`)
     await expect(page.getByLabel('Description (optional)', { exact: true })).toHaveValue(
