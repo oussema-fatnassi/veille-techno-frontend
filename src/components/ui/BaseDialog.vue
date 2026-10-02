@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Dialog from 'primevue/dialog'
 
-defineProps<{ title: string }>()
+withDefaults(defineProps<{ title: string; busy?: boolean }>(), { busy: false })
 const visible = defineModel<boolean>('visible', { required: true })
 </script>
 
@@ -10,7 +10,8 @@ const visible = defineModel<boolean>('visible', { required: true })
     v-model:visible="visible"
     :header="title"
     modal
-    :close-on-escape="true"
+    :close-on-escape="!busy"
+    :closable="!busy"
     class="w-[calc(100%-2rem)] max-w-md"
   >
     <slot />

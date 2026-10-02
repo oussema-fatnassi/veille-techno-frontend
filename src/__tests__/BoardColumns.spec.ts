@@ -81,7 +81,10 @@ describe('board columns', () => {
           HttpResponse.json([{ id: 1, position: 0, title: 'Recovered' }]),
         ),
       )
-      await wrapper.get('button').trigger('click')
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'Retry columns')!
+        .trigger('click')
       await vi.waitFor(() => expect(wrapper.get('h3').text()).toBe('Recovered'))
       expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     },

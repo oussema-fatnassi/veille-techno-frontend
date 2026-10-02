@@ -103,6 +103,21 @@ test('real account A logout then account B keeps identities separate', async ({ 
     await expect(page).toHaveURL(/\/board$/)
     await expect(page.getByText('Signed in as')).toContainText(account.email)
     await expect(page.getByRole('heading', { level: 3 })).toHaveText([`${account.name} column`])
+    await page.getByRole('button', { name: 'New column', exact: true }).click()
+    await page.getByLabel('Title', { exact: true }).fill(`Created by ${account.name}`)
+    await page.getByRole('button', { name: 'Create column', exact: true }).click()
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText([
+      `${account.name} column`,
+      `Created by ${account.name}`,
+    ])
+    await page.getByRole('button', { name: 'Log out' }).click()
+    await page.getByLabel('Email').fill(account.email)
+    await page.getByLabel('Password').fill(account.password)
+    await page.getByRole('button', { name: 'Log in' }).click()
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText([
+      `${account.name} column`,
+      `Created by ${account.name}`,
+    ])
     await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page).toHaveURL(/\/login$/)
     await expect(page.getByText(account.email, { exact: false })).toHaveCount(0)

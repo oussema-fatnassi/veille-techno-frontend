@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch, computed } from 'vue'
 import Button from 'primevue/button'
+import NewColumnDialog from './NewColumnDialog.vue'
 import { getColumns, type BoardColumn } from '@/api/lists'
 import { useApiClient } from '@/composables/useApiClient'
 import { useApiRequest } from '@/composables/useApiRequest'
@@ -11,6 +12,16 @@ const auth = useAuthStore()
 const columns = ref<BoardColumn[] | null>(null)
 const { loading, error, execute } = useApiRequest()
 const controller = new AbortController()
+const newColumnVisible = ref(false)
+const canCreate = computed(() => columns.value !== null && !loading.value && !error.value)
+const nextPosition = computed(() =>
+  columns.value?.length ? Math.max(...columns.value.map((column) => column.position)) + 1 : 0,
+)
+function addColumn(column: BoardColumn) {
+  columns.value = [...(columns.value ?? []).filter((item) => item.id !== column.id), column].sort(
+    (a, b) => a.position - b.position || a.id - b.id,
+  )
+}
 
 async function loadColumns() {
   const version = auth.sessionVersion
@@ -24,6 +35,7 @@ watch(
   () => auth.sessionVersion,
   () => {
     columns.value = null
+    newColumnVisible.value = false
     controller.abort()
   },
   { flush: 'sync' },
@@ -37,7 +49,17 @@ onMounted(loadColumns)
 
 <template>
   <section aria-labelledby="columns-title" class="mt-8 min-w-0">
-    <h2 id="columns-title" class="mb-3 text-xl font-semibold">Columns</h2>
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+      <h2 id="columns-title" class="text-xl font-semibold">Columns</h2>
+      <Button label="New column" :disabled="!canCreate" @click="newColumnVisible = true" />
+    </div>
+    <NewColumnDialog
+      v-model:visible="newColumnVisible"
+      :position="nextPosition"
+      :can-submit="canCreate"
+      @created="addColumn"
+      @reconcile="loadColumns"
+    />
     <p v-if="loading" role="status">Loading columns…</p>
     <div v-else-if="error" class="space-y-3">
       <p role="alert" class="text-danger">{{ error.message }}</p>
