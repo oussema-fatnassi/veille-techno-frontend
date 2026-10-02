@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { onBeforeUnmount, ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { register } from '@/api/auth'
+import { useAuthStore } from '@/stores/auth'
+import { useApiRequest } from '@/composables/useApiRequest'
 import Button from 'primevue/button'
 import BaseInput from '@/components/ui/BaseInput.vue'
 
 import isEmail from 'validator/lib/isEmail'
 import isLength from 'validator/lib/isLength'
 import { validateRegistrationPassword } from '@/validation/auth'
+
+const router = useRouter()
+const auth = useAuthStore()
+const { loading, error, execute } = useApiRequest()
+const controller = new AbortController()
+onBeforeUnmount(() => controller.abort())
 
 const name = ref('')
 const email = ref('')
@@ -52,7 +61,8 @@ function validatePassword() {
   passwordError.value = validateRegistrationPassword(password.value)
 }
 
-function handleSubmit() {
+async function handleSubmit() {
+  if (loading.value) return
   submitted.value = true
 
   validateName()
@@ -73,6 +83,16 @@ function handleSubmit() {
     passwordInput.value?.focus()
     return
   }
+
+  const credentials = { name: name.value, email: email.value, password: password.value }
+  const result = await execute(() => register(credentials, controller.signal))
+  if (!result.ok || controller.signal.aborted) return
+
+  password.value = ''
+  submitted.value = false
+  auth.clearSession()
+  auth.registrationEmail = credentials.email
+  await router.replace({ name: 'login' })
 }
 </script>
 
@@ -117,7 +137,13 @@ function handleSubmit() {
           @input="validatePassword"
         />
 
-        <Button type="submit" label="Create account" />
+        <p v-if="error" role="alert" class="text-sm text-danger">{{ error.message }}</p>
+        <Button
+          type="submit"
+          :label="loading ? 'Creating account…' : 'Create account'"
+          :loading="loading"
+          :disabled="loading"
+        />
       </form>
 
       <p class="mt-4">
