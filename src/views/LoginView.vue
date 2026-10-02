@@ -12,7 +12,7 @@ const auth = useAuthStore()
 const { loading, error, execute } = useApiRequest()
 
 const registeredEmail = auth.takeRegistrationEmail()
-const registrationConfirmed = ref(registeredEmail !== null)
+const registrationMessage = ref(auth.takeRegistrationMessage())
 const email = ref(registeredEmail ?? '')
 const password = ref('')
 const emailInput = ref<InstanceType<typeof BaseInput> | null>(null)
@@ -40,7 +40,7 @@ function validatePassword() {
 async function handleSubmit() {
   if (loading.value) return
 
-  registrationConfirmed.value = false
+  registrationMessage.value = ''
   submitted.value = true
   validateEmail()
   validatePassword()
@@ -81,8 +81,8 @@ async function handleSubmit() {
         {{ auth.sessionMessage }}
       </p>
 
-      <p v-if="registrationConfirmed" role="status" class="mt-4 text-success">
-        If this email is available, your account has been created. You can now try to log in.
+      <p v-if="registrationMessage" role="status" class="mt-4 text-success">
+        {{ registrationMessage }}
       </p>
 
       <form class="mt-6 space-y-4" novalidate @submit.prevent="handleSubmit">

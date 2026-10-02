@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/mocks/server'
-import { login } from '@/api/auth'
+import { login, register } from '@/api/auth'
 
 const API = `${window.location.origin}/api`
 
@@ -57,4 +57,28 @@ describe('login API', () => {
       message: 'The login response is invalid. Please try again.',
     })
   })
+})
+
+describe('registration API', () => {
+  it('returns the message from a 202 response without expecting a user or token', async () => {
+    server.use(
+      http.post(`${API}/auth/register`, () =>
+        HttpResponse.json({ message: 'Registration request accepted.' }, { status: 202 }),
+      ),
+    )
+    await expect(register({ ...credentials, name: 'Learner' })).resolves.toEqual({
+      message: 'Registration request accepted.',
+    })
+  })
+
+  it.each([null, {}, { message: null }, { message: 123 }, { message: '' }, { message: '   ' }])(
+    'rejects a malformed registration response: %j',
+    async (body) => {
+      server.use(http.post(`${API}/auth/register`, () => HttpResponse.json(body, { status: 202 })))
+      await expect(register({ ...credentials, name: 'Learner' })).rejects.toMatchObject({
+        kind: 'unknown',
+        message: 'The registration response is invalid. Please try again.',
+      })
+    },
+  )
 })

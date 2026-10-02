@@ -15,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref<UserProfile | null>(null)
   const sessionVersion = ref(0)
   const sessionMessage = ref('')
+  const registrationMessage = ref('')
   const registrationEmail = ref<string | null>(null)
   const isAuthenticated = computed(() => accessToken.value !== null)
 
@@ -23,7 +24,14 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = null
     sessionMessage.value = ''
     registrationEmail.value = null
+    registrationMessage.value = ''
     sessionVersion.value++
+  }
+
+  function takeRegistrationMessage() {
+    const message = registrationMessage.value
+    registrationMessage.value = ''
+    return message
   }
 
   function takeRegistrationEmail() {
@@ -67,6 +75,8 @@ export const useAuthStore = defineStore('auth', () => {
     sessionVersion,
     sessionMessage,
     registrationEmail,
+    registrationMessage,
+    takeRegistrationMessage,
     takeRegistrationEmail,
     isAuthenticated,
     signIn,

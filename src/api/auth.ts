@@ -26,9 +26,19 @@ export interface RegistrationCredentials extends LoginCredentials {
   name: string
 }
 
+export interface RegistrationResponse {
+  message: string
+}
+
 export async function register(
   credentials: RegistrationCredentials,
   signal?: AbortSignal,
-): Promise<void> {
-  await client.post('/auth/register', credentials, { signal })
+): Promise<RegistrationResponse> {
+  const response = await client.post<RegistrationResponse>('/auth/register', credentials, {
+    signal,
+  })
+  if (!response || typeof response.message !== 'string' || !response.message.trim()) {
+    throw new ApiError('unknown', 'The registration response is invalid. Please try again.')
+  }
+  return response
 }
