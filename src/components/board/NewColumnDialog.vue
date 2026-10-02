@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
-import isLength from 'validator/lib/isLength'
+import { columnTitleError } from '@/validation/column'
 import Button from 'primevue/button'
 import BaseDialog from '@/components/ui/BaseDialog.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -24,12 +24,7 @@ const controller = new AbortController()
 
 function validateTitle() {
   if (!submitted.value) return
-  const normalized = title.value.trim()
-  titleError.value = !normalized
-    ? 'Title is required.'
-    : !isLength(normalized, { max: 100 })
-      ? 'Title must be 100 characters or fewer.'
-      : ''
+  titleError.value = columnTitleError(title.value)
 }
 
 async function submit() {
