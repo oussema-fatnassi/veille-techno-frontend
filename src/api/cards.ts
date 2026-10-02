@@ -7,6 +7,43 @@ export interface BoardTask {
   position: number
 }
 
+export interface TaskDetails extends BoardTask {
+  description: string | null
+  listId: number
+}
+
+function checkTask(task: TaskDetails, id: number): TaskDetails {
+  if (
+    !task ||
+    task.id !== id ||
+    typeof task.title !== 'string' ||
+    !Number.isInteger(task.position) ||
+    !Number.isInteger(task.listId) ||
+    task.listId <= 0 ||
+    (task.description !== null && typeof task.description !== 'string')
+  ) {
+    throw new ApiError('unknown', 'Could not read the task. Please reload its details.')
+  }
+  return task
+}
+
+export async function getTask(
+  client: ReturnType<typeof createApiClient>,
+  id: number,
+  signal?: AbortSignal,
+) {
+  return checkTask(await client.get<TaskDetails>(`/cards/${id}`, { signal }), id)
+}
+
+export async function updateTask(
+  client: ReturnType<typeof createApiClient>,
+  id: number,
+  changes: { title: string; description: string },
+  signal?: AbortSignal,
+) {
+  return checkTask(await client.patch<TaskDetails>(`/cards/${id}`, changes, { signal }), id)
+}
+
 export async function getTasks(
   client: ReturnType<typeof createApiClient>,
   columnId: number,
