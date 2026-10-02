@@ -32,3 +32,24 @@ export async function createColumn(
   }
   return response
 }
+
+export async function renameColumn(
+  client: ReturnType<typeof createApiClient>,
+  id: number,
+  title: string,
+  signal?: AbortSignal,
+): Promise<BoardColumn> {
+  const response = await client.patch<BoardColumn>(`/lists/${id}`, { title }, { signal })
+  if (!response || response.id !== id || typeof response.title !== 'string') {
+    throw new ApiError('unknown', 'Could not confirm the update. Check the reloaded board.')
+  }
+  return response
+}
+
+export function deleteColumn(
+  client: ReturnType<typeof createApiClient>,
+  id: number,
+  signal?: AbortSignal,
+) {
+  return client.delete(`/lists/${id}`, { signal })
+}
