@@ -1,6 +1,7 @@
 import { test, expect, type Route } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/lists', (route) => route.fulfill({ json: [] }))
   await page.route('**/api/users/me', (route) =>
     route.fulfill({
       json: {
