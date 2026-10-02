@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, watch, computed } from 'vue'
 import Button from 'primevue/button'
 import NewColumnDialog from './NewColumnDialog.vue'
+import ColumnActionsDialog from './ColumnActionsDialog.vue'
 import { getColumns, type BoardColumn } from '@/api/lists'
 import { useApiClient } from '@/composables/useApiClient'
 import { useApiRequest } from '@/composables/useApiRequest'
@@ -13,7 +14,15 @@ const columns = ref<BoardColumn[] | null>(null)
 const { loading, error, execute } = useApiRequest()
 const controller = new AbortController()
 const newColumnVisible = ref(false)
+const actionVisible = ref(false)
+const selectedColumn = ref<BoardColumn | null>(null)
+const action = ref<'rename' | 'delete'>('rename')
+const heading = ref<HTMLElement | null>(null)
 const canCreate = computed(() => columns.value !== null && !loading.value && !error.value)
+const canModify = computed(
+  () =>
+    canCreate.value && !!columns.value?.some((column) => column.id === selectedColumn.value?.id),
+)
 const nextPosition = computed(() =>
   columns.value?.length ? Math.max(...columns.value.map((column) => column.position)) + 1 : 0,
 )
@@ -21,6 +30,23 @@ function addColumn(column: BoardColumn) {
   columns.value = [...(columns.value ?? []).filter((item) => item.id !== column.id), column].sort(
     (a, b) => a.position - b.position || a.id - b.id,
   )
+}
+
+function openAction(column: BoardColumn, mode: 'rename' | 'delete') {
+  selectedColumn.value = column
+  action.value = mode
+  actionVisible.value = true
+}
+function updateColumn(updated: BoardColumn) {
+  const column = columns.value?.find((item) => item.id === updated.id)
+  if (column) column.title = updated.title
+}
+function removeColumn(id: number) {
+  columns.value = columns.value!.filter((column) => column.id !== id)
+}
+function restoreFocus() {
+  // Deletion or a refetch may have removed the button that opened the dialog.
+  if (document.activeElement === document.body) heading.value?.querySelector('button')?.focus()
 }
 
 async function loadColumns() {
@@ -36,6 +62,8 @@ watch(
   () => {
     columns.value = null
     newColumnVisible.value = false
+    actionVisible.value = false
+    selectedColumn.value = null
     controller.abort()
   },
   { flush: 'sync' },
@@ -49,7 +77,7 @@ onMounted(loadColumns)
 
 <template>
   <section aria-labelledby="columns-title" class="mt-8 min-w-0">
-    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <div ref="heading" class="mb-3 flex flex-wrap items-center justify-between gap-3">
       <h2 id="columns-title" class="text-xl font-semibold">Columns</h2>
       <Button label="New column" :disabled="!canCreate" @click="newColumnVisible = true" />
     </div>
@@ -59,6 +87,18 @@ onMounted(loadColumns)
       :can-submit="canCreate"
       @created="addColumn"
       @reconcile="loadColumns"
+    />
+    <ColumnActionsDialog
+      v-model:visible="actionVisible"
+      :column="columns?.find((column) => column.id === selectedColumn?.id) ?? selectedColumn"
+      :action="action"
+      :can-submit="canModify"
+      :refreshing="loading"
+      :reload-failed="!!error"
+      @renamed="updateColumn"
+      @deleted="removeColumn"
+      @reconcile="loadColumns"
+      @closed="restoreFocus"
     />
     <p v-if="loading" role="status">Loading columns…</p>
     <div v-else-if="error" class="space-y-3">
@@ -82,6 +122,23 @@ onMounted(loadColumns)
         class="min-h-40 w-72 max-w-full shrink-0 rounded-lg border border-outline bg-surface p-4"
       >
         <h3 :id="`column-${column.id}`" class="font-semibold wrap-anywhere">{{ column.title }}</h3>
+        <div class="mt-3 flex gap-2">
+          <Button
+            label="Rename"
+            :aria-label="`Rename ${column.title}`"
+            size="small"
+            severity="secondary"
+            @click="openAction(column, 'rename')"
+          />
+          <Button
+            label="Delete"
+            :aria-label="`Delete ${column.title}`"
+            size="small"
+            severity="danger"
+            outlined
+            @click="openAction(column, 'delete')"
+          />
+        </div>
       </section>
     </div>
   </section>
