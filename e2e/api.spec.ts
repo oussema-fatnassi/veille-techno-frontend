@@ -110,14 +110,89 @@ test('real account A logout then account B keeps identities separate', async ({ 
       `${account.name} column`,
       `Created by ${account.name}`,
     ])
+    // Dedicated task data verifies rename preservation and database cascade deletion.
+    const seeded = await page.evaluate(async (account) => {
+      const modulePath = '/src/api/client.ts'
+      const { createApiClient } = await import(modulePath)
+      const { accessToken } = await createApiClient().post('/auth/login', {
+        email: account.email,
+        password: account.password,
+      })
+      const client = createApiClient({ getAccessToken: () => accessToken })
+      const columns = await client.get('/lists')
+      const column = columns.find(
+        (item: { title: string }) => item.title === `Created by ${account.name}`,
+      )
+      const card = await client.post(`/lists/${column.id}/cards`, {
+        title: 'Keep this task during rename',
+        description: 'F22 dedicated data',
+        position: 0,
+      })
+      return { columnId: column.id as number, cardId: card.id as number, card }
+    }, account)
+    await page
+      .getByRole('button', { name: `Rename Created by ${account.name}`, exact: true })
+      .click()
+    await page.getByLabel('Title', { exact: true }).fill(`Renamed by ${account.name}`)
+    await page.getByRole('button', { name: 'Save changes', exact: true }).click()
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText([
+      `${account.name} column`,
+      `Renamed by ${account.name}`,
+    ])
     await page.getByRole('button', { name: 'Log out' }).click()
     await page.getByLabel('Email').fill(account.email)
     await page.getByLabel('Password').fill(account.password)
     await page.getByRole('button', { name: 'Log in' }).click()
     await expect(page.getByRole('heading', { level: 3 })).toHaveText([
       `${account.name} column`,
-      `Created by ${account.name}`,
+      `Renamed by ${account.name}`,
     ])
+    const preserved = await page.evaluate(
+      async ({ account, seeded }) => {
+        const modulePath = '/src/api/client.ts'
+        const { createApiClient } = await import(modulePath)
+        const { accessToken } = await createApiClient().post('/auth/login', {
+          email: account.email,
+          password: account.password,
+        })
+        return createApiClient({ getAccessToken: () => accessToken }).get(
+          `/lists/${seeded.columnId}/cards`,
+        )
+      },
+      { account, seeded },
+    )
+    expect(preserved).toEqual([seeded.card])
+    for (const title of [`Renamed by ${account.name}`, `${account.name} column`]) {
+      await page.getByRole('button', { name: `Delete ${title}`, exact: true }).click()
+      await expect(page.getByRole('dialog')).toContainText(
+        'All its tasks will be permanently deleted.',
+      )
+      const deleted = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'DELETE' && response.url().includes('/api/lists/'),
+      )
+      await page.getByRole('button', { name: 'Delete column', exact: true }).click()
+      expect((await deleted).status()).toBe(204)
+      await expect(page.getByRole('dialog')).toBeHidden()
+    }
+    await expect(page.getByText('No columns yet.', { exact: false })).toBeVisible()
+    const removed = await page.evaluate(
+      async ({ account, seeded }) => {
+        const modulePath = '/src/api/client.ts'
+        const { createApiClient } = await import(modulePath)
+        const { accessToken } = await createApiClient().post('/auth/login', {
+          email: account.email,
+          password: account.password,
+        })
+        const client = createApiClient({ getAccessToken: () => accessToken })
+        const cardResponse = await fetch(`/api/cards/${seeded.cardId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        return { columns: await client.get('/lists'), cardStatus: cardResponse.status }
+      },
+      { account, seeded },
+    )
+    expect(removed).toEqual({ columns: [], cardStatus: 404 })
     await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page).toHaveURL(/\/login$/)
     await expect(page.getByText(account.email, { exact: false })).toHaveCount(0)
