@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch, computed } from 'vue'
 import Button from 'primevue/button'
 import NewColumnDialog from './NewColumnDialog.vue'
 import ColumnActionsDialog from './ColumnActionsDialog.vue'
+import ColumnTasks from './ColumnTasks.vue'
 import { getColumns, type BoardColumn } from '@/api/lists'
 import { useApiClient } from '@/composables/useApiClient'
 import { useApiRequest } from '@/composables/useApiRequest'
@@ -139,6 +140,7 @@ onMounted(loadColumns)
             @click="openAction(column, 'delete')"
           />
         </div>
+        <ColumnTasks :column-id="column.id" :column-title="column.title" />
       </section>
     </div>
   </section>
