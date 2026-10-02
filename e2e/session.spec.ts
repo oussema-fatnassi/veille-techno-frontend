@@ -8,6 +8,7 @@ async function login(page: Page, email = 'a@example.com') {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/lists', (route) => route.fulfill({ json: [] }))
   await page.route('**/api/auth/login', (route) =>
     route.fulfill({
       json: {

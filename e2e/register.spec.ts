@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/lists', (route) => route.fulfill({ json: [] }))
+})
+
 for (const width of [390, 1440]) {
   test(`registration and subsequent login work with the keyboard at ${width}px`, async ({
     page,

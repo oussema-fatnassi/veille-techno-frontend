@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BoardColumns from '@/components/board/BoardColumns.vue'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
@@ -32,5 +33,6 @@ onMounted(loadProfile)
       </div>
       <Button label="Log out" @click="logout" />
     </header>
+    <BoardColumns />
   </main>
 </template>

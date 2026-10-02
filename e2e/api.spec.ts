@@ -13,6 +13,8 @@ test.beforeAll(async () => {
     response.setHeader('Content-Type', 'application/json')
     if (request.url === '/api/auth/login') {
       response.end(JSON.stringify({ accessToken: 'browser-test-token' }))
+    } else if (request.url === '/api/lists') {
+      response.end('[]')
     } else if (request.url === '/api/users/me') {
       response.writeHead(request.headers.authorization === 'Bearer browser-test-token' ? 200 : 401)
       response.end(JSON.stringify({ id: 1, name: 'API test user', email: 'api@example.test' }))
@@ -59,7 +61,7 @@ test('browser login and protected request through the frontend proxy', async ({ 
   await expect(page).toHaveURL(/\/board$/)
 
   await expect(page.getByText('Signed in as', { exact: false })).toBeVisible()
-  expect(received).toEqual(
+  expect(received.filter((request) => request.path !== '/api/lists')).toEqual(
     realApi
       ? []
       : [
@@ -70,7 +72,7 @@ test('browser login and protected request through the frontend proxy', async ({ 
 })
 
 test('real account A logout then account B keeps identities separate', async ({ page }) => {
-  // This opt-in check creates accounts in the local backend; CI uses controlled responses.
+  // The isolated runner creates disposable accounts; CI uses controlled responses.
   // eslint-disable-next-line playwright/no-skipped-test
   test.skip(!realApi, 'Requires the real backend')
   await page.goto('/login')
@@ -82,7 +84,17 @@ test('real account A logout then account B keeps identities separate', async ({ 
   await page.evaluate(async (accounts) => {
     const modulePath = '/src/api/client.ts'
     const { createApiClient } = await import(modulePath)
-    for (const account of accounts) await createApiClient().post('/auth/register', account)
+    for (const account of accounts) {
+      await createApiClient().post('/auth/register', account)
+      const { accessToken } = await createApiClient().post('/auth/login', {
+        email: account.email,
+        password: account.password,
+      })
+      await createApiClient({ getAccessToken: () => accessToken }).post('/lists', {
+        title: `${account.name} column`,
+        position: 0,
+      })
+    }
   }, accounts)
   for (const account of accounts) {
     await page.getByLabel('Email').fill(account.email)
@@ -90,6 +102,7 @@ test('real account A logout then account B keeps identities separate', async ({ 
     await page.getByRole('button', { name: 'Log in' }).click()
     await expect(page).toHaveURL(/\/board$/)
     await expect(page.getByText('Signed in as')).toContainText(account.email)
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText([`${account.name} column`])
     await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page).toHaveURL(/\/login$/)
     await expect(page.getByText(account.email, { exact: false })).toHaveCount(0)
@@ -100,7 +113,7 @@ test('real account A logout then account B keeps identities separate', async ({ 
 test('real UI registration followed by login, then a duplicate email gets the same answer', async ({
   page,
 }) => {
-  // CI uses controlled responses; this opt-in workflow creates a development account.
+  // CI uses controlled responses; the isolated runner creates a temporary account.
   // eslint-disable-next-line playwright/no-skipped-test
   test.skip(!realApi, 'Requires the real backend')
   const account = {
