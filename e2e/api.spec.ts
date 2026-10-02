@@ -97,6 +97,43 @@ test('real account A logout then account B keeps identities separate', async ({ 
   }
 })
 
+test('real UI registration followed by login, then a duplicate email gets the same answer', async ({
+  page,
+}) => {
+  // CI uses controlled responses; this opt-in workflow creates a development account.
+  // eslint-disable-next-line playwright/no-skipped-test
+  test.skip(!realApi, 'Requires the real backend')
+  const account = {
+    name: 'F20 learner',
+    email: `f20-${randomUUID()}@example.test`,
+    password: `T1!${randomUUID().slice(0, 12)}`,
+  }
+  await page.goto('/register')
+  await page.getByLabel('Name', { exact: true }).fill(account.name)
+  await page.getByLabel('Email').fill(account.email)
+  await page.getByLabel('Password').fill(account.password)
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByRole('status')).toHaveText(
+    'If this email is available, your account has been created. You can now try to log in.',
+  )
+  await expect(page.getByLabel('Email')).toHaveValue(account.email)
+  await expect(page.getByLabel('Password')).toHaveValue('')
+  await page.getByLabel('Password').fill(account.password)
+  await page.getByRole('button', { name: 'Log in' }).click()
+  await expect(page.getByText('Signed in as')).toContainText(account.email)
+  await page.getByRole('button', { name: 'Log out' }).click()
+  await page.getByRole('link', { name: 'Create an account' }).click()
+  await page.getByLabel('Name', { exact: true }).fill(account.name)
+  await page.getByLabel('Email').fill(account.email)
+  await page.getByLabel('Password').fill(account.password)
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByRole('status')).toHaveText(
+    'If this email is available, your account has been created. You can now try to log in.',
+  )
+})
+
 test('a timed-out request releases loading and shows a useful error', async ({ page }) => {
   await page.goto('/login')
   await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible()
