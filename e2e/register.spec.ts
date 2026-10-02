@@ -50,9 +50,7 @@ for (const width of [390, 1440]) {
     await expect(page.getByRole('button', { name: 'Create account' })).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/\/login$/)
-    await expect(page.getByRole('status')).toHaveText(
-      'If this email is available, your account has been created. You can now try to log in.',
-    )
+    await expect(page.getByRole('status')).toHaveText('Accepted')
     await expect(page.getByLabel('Email')).toHaveValue('learner@example.com')
     await expect(page.getByLabel('Password')).toHaveValue('')
     expect(registrations).toBe(1)
@@ -87,9 +85,7 @@ for (const [status, message] of [
     )
     await page.getByRole('button', { name: 'Create account' }).click()
     await expect(page).toHaveURL(/\/login$/)
-    await expect(page.getByRole('status')).toHaveText(
-      'If this email is available, your account has been created. You can now try to log in.',
-    )
+    await expect(page.getByRole('status')).toHaveText('Accepted')
   })
 }
 

@@ -62,7 +62,7 @@ describe('registration form', () => {
 })
 
 describe('registration submission', () => {
-  it('sends the fields, confirms creation, and prefills login without creating a session', async () => {
+  it('shows the returned acceptance message and prefills login without creating a session', async () => {
     let received: unknown
     server.use(
       http.post(`${API}/auth/register`, async ({ request }) => {
@@ -76,9 +76,7 @@ describe('registration submission', () => {
     await wrapper.get('form').trigger('submit')
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('login'))
     expect(received).toEqual(credentials)
-    expect(wrapper.get('[role="status"]').text()).toBe(
-      'If this email is available, your account has been created. You can now try to log in.',
-    )
+    expect(wrapper.get('[role="status"]').text()).toBe('Accepted')
     expect((wrapper.get('#email').element as HTMLInputElement).value).toBe(credentials.email)
     expect((wrapper.get('#password').element as HTMLInputElement).value).toBe('')
     expect(auth.isAuthenticated).toBe(false)

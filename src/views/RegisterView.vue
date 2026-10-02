@@ -92,6 +92,7 @@ async function handleSubmit() {
   submitted.value = false
   auth.clearSession()
   auth.registrationEmail = credentials.email
+  auth.registrationMessage = result.data.message
   await router.replace({ name: 'login' })
 }
 </script>
