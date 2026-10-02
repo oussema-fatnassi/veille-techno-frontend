@@ -18,6 +18,7 @@ const cleanups: (() => void)[] = []
 beforeEach(() => {
   setActivePinia(createPinia())
   server.use(
+    http.get(`${API}/lists`, () => HttpResponse.json([])),
     http.post(`${API}/auth/login`, () => HttpResponse.json({ accessToken: 'token' })),
     http.get(`${API}/users/me`, () => HttpResponse.json(profile)),
   )

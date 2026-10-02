@@ -1,6 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const realApi = process.env.API_SMOKE_REAL === '1'
+const isolatedApi = process.env.API_TEST_BACKEND_URL
+if (realApi && !isolatedApi) {
+  throw new Error('Use npm run test:api:real to provision an isolated API and database.')
+}
 
 export default defineConfig({
   testDir: './e2e',
@@ -23,6 +27,6 @@ export default defineConfig({
     command: 'npm run dev -- --host 127.0.0.1 --port 4174 --strictPort',
     url: 'http://127.0.0.1:4174',
     reuseExistingServer: false,
-    env: realApi ? {} : { VITE_API_BASE_URL: 'http://127.0.0.1:43123/api' },
+    env: { VITE_API_BASE_URL: realApi ? isolatedApi! : 'http://127.0.0.1:43123/api' },
   },
 })
