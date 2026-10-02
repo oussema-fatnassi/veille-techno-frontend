@@ -44,6 +44,22 @@ export async function updateTask(
   return checkTask(await client.patch<TaskDetails>(`/cards/${id}`, changes, { signal }), id)
 }
 
+export async function createTask(
+  client: ReturnType<typeof createApiClient>,
+  columnId: number,
+  taskData: { title: string; description: string; position: number },
+  signal?: AbortSignal,
+) {
+  const task = await client.post<TaskDetails>(`/lists/${columnId}/cards`, taskData, { signal })
+  if (!task || !Number.isInteger(task.id) || task.id <= 0 || task.listId !== columnId) {
+    throw new ApiError(
+      'unknown',
+      'Could not confirm the new task. Check the column before trying again.',
+    )
+  }
+  return checkTask(task, task.id)
+}
+
 export async function getTasks(
   client: ReturnType<typeof createApiClient>,
   columnId: number,

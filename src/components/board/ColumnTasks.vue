@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import { getTasks, type BoardTask, type TaskDetails } from '@/api/cards'
 import TaskEditorDialog from './TaskEditorDialog.vue'
+import NewTaskDialog from './NewTaskDialog.vue'
 import { useApiClient } from '@/composables/useApiClient'
 import { useApiRequest } from '@/composables/useApiRequest'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{ columnId: number; columnTitle: string }>()
+const emit = defineEmits<{ columnMissing: [] }>()
 const api = useApiClient()
 const auth = useAuthStore()
 const tasks = ref<BoardTask[] | null>(null)
@@ -15,7 +17,19 @@ const { loading, error, execute } = useApiRequest()
 const controller = new AbortController()
 const region = ref<HTMLElement | null>(null)
 const selectedTaskId = ref<number | null>(null)
+const newTaskVisible = ref(false)
+const canCreate = computed(() => tasks.value !== null && !loading.value && !error.value)
+const nextPosition = computed(() =>
+  tasks.value?.length ? Math.max(...tasks.value.map((task) => task.position)) + 1 : 0,
+)
 let taskRevision = 0
+
+function addTask(task: TaskDetails) {
+  taskRevision++
+  tasks.value = [...(tasks.value ?? []).filter((item) => item.id !== task.id), task].sort(
+    (a, b) => a.position - b.position || a.id - b.id,
+  )
+}
 
 function updateTask(task: TaskDetails) {
   if (task.listId !== props.columnId) {
@@ -54,6 +68,7 @@ watch(
   () => {
     tasks.value = null
     selectedTaskId.value = null
+    newTaskVisible.value = false
     controller.abort()
   },
   { flush: 'sync' },
@@ -96,6 +111,27 @@ onMounted(() => loadTasks())
         </button>
       </li>
     </ul>
+    <Button
+      label="New task"
+      :aria-label="`New task in ${columnTitle}`"
+      severity="secondary"
+      size="small"
+      class="mt-3"
+      :disabled="!canCreate"
+      @click="newTaskVisible = true"
+    />
+    <NewTaskDialog
+      v-model:visible="newTaskVisible"
+      :column-id="columnId"
+      :column-title="columnTitle"
+      :position="nextPosition"
+      :can-submit="canCreate"
+      :refreshing="loading"
+      :reload-failed="!!error"
+      @created="addTask"
+      @reconcile="loadTasks()"
+      @column-missing="emit('columnMissing')"
+    />
     <TaskEditorDialog
       v-if="selectedTaskId !== null"
       :key="selectedTaskId"
