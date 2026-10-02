@@ -15,13 +15,21 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref<UserProfile | null>(null)
   const sessionVersion = ref(0)
   const sessionMessage = ref('')
+  const registrationEmail = ref<string | null>(null)
   const isAuthenticated = computed(() => accessToken.value !== null)
 
   function clearSession() {
     accessToken.value = null
     profile.value = null
     sessionMessage.value = ''
+    registrationEmail.value = null
     sessionVersion.value++
+  }
+
+  function takeRegistrationEmail() {
+    const email = registrationEmail.value
+    registrationEmail.value = null
+    return email
   }
 
   function expireSession() {
@@ -58,6 +66,8 @@ export const useAuthStore = defineStore('auth', () => {
     profile,
     sessionVersion,
     sessionMessage,
+    registrationEmail,
+    takeRegistrationEmail,
     isAuthenticated,
     signIn,
     clearSession,
