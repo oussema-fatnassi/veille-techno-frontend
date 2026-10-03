@@ -175,11 +175,12 @@ test('real account A logout then account B keeps identities separate', async ({ 
     await expect(
       page.getByRole('region', { name: 'Board columns', exact: true }).getByRole('listitem'),
     ).toHaveText([`${account.name} private task`, 'Keep this task during rename'])
-    for (const columnTitle of [`${account.name} column`, `Renamed by ${account.name}`]) {
+    for (const [columnTitle, initialDescription] of [
+      [`${account.name} column`, 'Optional creation details'],
+      [`Renamed by ${account.name}`, ''],
+    ] as const) {
       await page.getByRole('button', { name: `New task in ${columnTitle}`, exact: true }).click()
       await page.getByLabel('Title', { exact: true }).fill(`Created in ${columnTitle}`)
-      const initialDescription =
-        columnTitle === `${account.name} column` ? 'Optional creation details' : ''
       await page.getByLabel('Description (optional)', { exact: true }).fill(initialDescription)
       await page.getByRole('button', { name: 'Create task', exact: true }).click()
       await expect(page.getByRole('dialog')).toBeHidden()
