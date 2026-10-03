@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch, computed } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch, computed } from 'vue'
 import Button from 'primevue/button'
 import NewColumnDialog from './NewColumnDialog.vue'
 import ColumnActionsDialog from './ColumnActionsDialog.vue'
@@ -19,6 +19,7 @@ const actionVisible = ref(false)
 const selectedColumn = ref<BoardColumn | null>(null)
 const action = ref<'rename' | 'delete'>('rename')
 const heading = ref<HTMLElement | null>(null)
+const columnNotice = ref('')
 const canCreate = computed(() => columns.value !== null && !loading.value && !error.value)
 const canModify = computed(
   () =>
@@ -58,6 +59,13 @@ async function loadColumns() {
   }
 }
 
+async function handleMissingColumn(title: string) {
+  columnNotice.value = `The column “${title}” no longer exists.`
+  await loadColumns()
+  await nextTick()
+  restoreFocus()
+}
+
 watch(
   () => auth.sessionVersion,
   () => {
@@ -65,6 +73,7 @@ watch(
     newColumnVisible.value = false
     actionVisible.value = false
     selectedColumn.value = null
+    columnNotice.value = ''
     controller.abort()
   },
   { flush: 'sync' },
@@ -82,6 +91,7 @@ onMounted(loadColumns)
       <h2 id="columns-title" class="text-xl font-semibold">Columns</h2>
       <Button label="New column" :disabled="!canCreate" @click="newColumnVisible = true" />
     </div>
+    <p v-if="columnNotice" role="status" class="mb-3 wrap-anywhere">{{ columnNotice }}</p>
     <NewColumnDialog
       v-model:visible="newColumnVisible"
       :position="nextPosition"
@@ -140,7 +150,11 @@ onMounted(loadColumns)
             @click="openAction(column, 'delete')"
           />
         </div>
-        <ColumnTasks :column-id="column.id" :column-title="column.title" />
+        <ColumnTasks
+          :column-id="column.id"
+          :column-title="column.title"
+          @column-missing="handleMissingColumn(column.title)"
+        />
       </section>
     </div>
   </section>

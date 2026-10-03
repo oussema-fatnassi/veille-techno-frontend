@@ -42,7 +42,7 @@ describe('column tasks', () => {
       'Last',
     ])
     expect(wrapper.find('img').exists()).toBe(false)
-    expect(wrapper.findAll('button')).toHaveLength(3)
+    expect(wrapper.findAll('li button')).toHaveLength(3)
   })
 
   it('shows loading and only reports empty after a successful response', async () => {
