@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
+import MoveTaskForm from './MoveTaskForm.vue'
 import BaseDialog from '@/components/ui/BaseDialog.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import { deleteTask, getTask, updateTask, type TaskDetails } from '@/api/cards'
@@ -17,8 +18,13 @@ const emit = defineEmits<{
   removed: [id: number]
   reconcile: []
   closed: []
+  moved: [task: TaskDetails]
+  located: [task: TaskDetails]
+  reconcileBoard: []
 }>()
 const visible = ref(true)
+const moveMode = ref(false)
+const moveBusy = ref(false)
 const api = useApiClient()
 const auth = useAuthStore()
 const { loading, error: loadError, execute: read } = useApiRequest()
@@ -170,8 +176,16 @@ async function remove() {
   }
 }
 
+function finishMove(task: TaskDetails) {
+  emit('moved', task)
+  visible.value = false
+}
+
 function cancel() {
-  if (confirmingDelete.value && !missing.value) {
+  if (moveMode.value) {
+    moveMode.value = false
+    nextTick(() => titleInput.value?.focus())
+  } else if (confirmingDelete.value && !missing.value) {
     confirmingDelete.value = false
     deleteError.value = null
     deleteNotice.value = ''
@@ -214,11 +228,19 @@ onMounted(loadDetails)
 <template>
   <BaseDialog
     v-model:visible="visible"
-    :title="confirmingDelete ? 'Delete task' : 'Edit task'"
-    :busy="saving || deleting"
+    :title="moveMode ? 'Move task' : confirmingDelete ? 'Delete task' : 'Edit task'"
+    :busy="saving || deleting || moveBusy"
     @after-hide="emit('closed')"
   >
-    <div class="space-y-4">
+    <MoveTaskForm
+      v-if="moveMode"
+      :task-id="taskId"
+      @busy="moveBusy = $event"
+      @moved="finishMove"
+      @located="emit('located', $event)"
+      @reconcile="emit('reconcileBoard')"
+    />
+    <div v-else class="space-y-4">
       <p v-if="loading" role="status">Loading task…</p>
       <p v-if="missing" role="alert">This task no longer exists.</p>
       <p v-else-if="loadError || saveError || deleteError" role="alert" class="text-sm text-danger">
@@ -265,6 +287,13 @@ onMounted(loadDetails)
           />
         </div>
       </form>
+      <Button
+        v-if="canEdit && !confirmingDelete"
+        label="Move to another column"
+        severity="secondary"
+        :disabled="loading || saving || deleting || !!loadError"
+        @click="moveMode = true"
+      />
       <p v-if="uncertain && !missing && !denied" class="text-sm">
         The save could not be confirmed. Reload details to check the server. Reloading replaces your
         unsaved changes.
@@ -279,7 +308,7 @@ onMounted(loadDetails)
     </div>
     <template #footer>
       <Button
-        v-if="canEdit && !confirmingDelete"
+        v-if="canEdit && !confirmingDelete && !moveMode"
         label="Delete task"
         severity="danger"
         outlined
@@ -290,12 +319,12 @@ onMounted(loadDetails)
         <Button
           label="Cancel"
           severity="secondary"
-          :disabled="saving || deleting"
+          :disabled="saving || deleting || moveBusy"
           @click="cancel"
         />
       </span>
       <Button
-        v-if="canEdit && confirmingDelete"
+        v-if="canEdit && confirmingDelete && !moveMode"
         label="Delete task"
         severity="danger"
         :loading="deleting"
@@ -303,7 +332,7 @@ onMounted(loadDetails)
         @click="remove"
       />
       <Button
-        v-if="canEdit && !confirmingDelete"
+        v-if="canEdit && !confirmingDelete && !moveMode"
         type="submit"
         form="task-editor-form"
         label="Save changes"

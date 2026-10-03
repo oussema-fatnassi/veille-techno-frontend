@@ -5,6 +5,7 @@ import NewColumnDialog from './NewColumnDialog.vue'
 import ColumnActionsDialog from './ColumnActionsDialog.vue'
 import ColumnTasks from './ColumnTasks.vue'
 import { getColumns, type BoardColumn } from '@/api/lists'
+import type { TaskDetails } from '@/api/cards'
 import { useApiClient } from '@/composables/useApiClient'
 import { useApiRequest } from '@/composables/useApiRequest'
 import { useAuthStore } from '@/stores/auth'
@@ -12,6 +13,8 @@ import { useAuthStore } from '@/stores/auth'
 const api = useApiClient()
 const auth = useAuthStore()
 const columns = ref<BoardColumn[] | null>(null)
+const movedTask = ref<TaskDetails | null>(null)
+const taskRefreshVersion = ref(0)
 const { loading, error, execute } = useApiRequest()
 const controller = new AbortController()
 const newColumnVisible = ref(false)
@@ -70,6 +73,7 @@ watch(
   () => auth.sessionVersion,
   () => {
     columns.value = null
+    movedTask.value = null
     newColumnVisible.value = false
     actionVisible.value = false
     selectedColumn.value = null
@@ -153,6 +157,10 @@ onMounted(loadColumns)
         <ColumnTasks
           :column-id="column.id"
           :column-title="column.title"
+          :moved-task="movedTask"
+          :refresh-version="taskRefreshVersion"
+          @moved="movedTask = $event"
+          @reconcile-board="taskRefreshVersion++"
           @column-missing="handleMissingColumn(column.title)"
         />
       </section>

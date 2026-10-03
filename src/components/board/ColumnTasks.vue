@@ -8,8 +8,13 @@ import { useApiClient } from '@/composables/useApiClient'
 import { useApiRequest } from '@/composables/useApiRequest'
 import { useAuthStore } from '@/stores/auth'
 
-const props = defineProps<{ columnId: number; columnTitle: string }>()
-const emit = defineEmits<{ columnMissing: [] }>()
+const props = defineProps<{
+  columnId: number
+  columnTitle: string
+  movedTask?: TaskDetails | null
+  refreshVersion?: number
+}>()
+const emit = defineEmits<{ columnMissing: []; moved: [task: TaskDetails]; reconcileBoard: [] }>()
 const api = useApiClient()
 const auth = useAuthStore()
 const tasks = ref<BoardTask[] | null>(null)
@@ -23,6 +28,7 @@ const nextPosition = computed(() =>
   tasks.value?.length ? Math.max(...tasks.value.map((task) => task.position)) + 1 : 0,
 )
 let taskRevision = 0
+let refreshPending = false
 
 function addTask(task: TaskDetails) {
   taskRevision++
@@ -52,7 +58,11 @@ function closeEditor() {
 }
 
 async function loadTasks(retry = false) {
-  if (loading.value || controller.signal.aborted) return
+  if (controller.signal.aborted) return
+  if (loading.value) {
+    refreshPending = true
+    return
+  }
   const version = auth.sessionVersion
   const revision = taskRevision
   const result = await execute(() => getTasks(api, props.columnId, controller.signal))
@@ -61,7 +71,27 @@ async function loadTasks(retry = false) {
   if (result.ok && revision === taskRevision) tasks.value = result.data
   await nextTick()
   if (retry && document.activeElement === document.body) region.value?.focus()
+  if (refreshPending) {
+    refreshPending = false
+    await loadTasks()
+  }
 }
+
+watch(
+  () => props.refreshVersion,
+  () => loadTasks(),
+)
+watch(
+  () => props.movedTask,
+  (task) => {
+    if (!task) return
+    removeTask(task.id)
+    if (task.listId === props.columnId) {
+      if (tasks.value !== null) addTask(task)
+      else void loadTasks()
+    }
+  },
+)
 
 watch(
   () => auth.sessionVersion,
@@ -140,6 +170,9 @@ onMounted(() => loadTasks())
       @removed="removeTask"
       @reconcile="loadTasks()"
       @closed="closeEditor"
+      @moved="emit('moved', $event)"
+      @located="emit('moved', $event)"
+      @reconcile-board="emit('reconcileBoard')"
     />
   </section>
 </template>
