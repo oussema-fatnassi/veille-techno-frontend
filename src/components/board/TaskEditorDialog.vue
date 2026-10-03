@@ -4,7 +4,7 @@ import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import BaseDialog from '@/components/ui/BaseDialog.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
-import { getTask, updateTask, type TaskDetails } from '@/api/cards'
+import { deleteTask, getTask, updateTask, type TaskDetails } from '@/api/cards'
 import { useApiClient } from '@/composables/useApiClient'
 import { useApiRequest } from '@/composables/useApiRequest'
 import { useAuthStore } from '@/stores/auth'
@@ -23,6 +23,11 @@ const api = useApiClient()
 const auth = useAuthStore()
 const { loading, error: loadError, execute: read } = useApiRequest()
 const { loading: saving, error: saveError, execute: write } = useApiRequest()
+const { loading: deleting, error: deleteError, execute: destroy } = useApiRequest()
+const confirmingDelete = ref(false)
+const deleteNeedsReload = ref(false)
+const deleteNotice = ref('')
+const cancelControl = ref<HTMLElement | null>(null)
 const details = ref<TaskDetails | null>(null)
 const title = ref('')
 const description = ref('')
@@ -49,7 +54,7 @@ function handleFailure(error: ApiError | null) {
 }
 
 async function loadDetails() {
-  if (loading.value || saving.value || controller.signal.aborted) return
+  if (loading.value || saving.value || deleting.value || controller.signal.aborted) return
   const version = auth.sessionVersion
   const result = await read(() => getTask(api, props.taskId, controller.signal))
   if (controller.signal.aborted || version !== auth.sessionVersion) return
@@ -61,6 +66,9 @@ async function loadDetails() {
     submitted.value = false
     denied.value = false
     saveError.value = null
+    deleteError.value = null
+    deleteNeedsReload.value = false
+    deleteNotice.value = ''
     emit('updated', result.data)
     await nextTick()
     titleInput.value?.focus()
@@ -75,6 +83,8 @@ async function save() {
     !canEdit.value ||
     loading.value ||
     saving.value ||
+    deleting.value ||
+    confirmingDelete.value ||
     loadError.value ||
     controller.signal.aborted
   )
@@ -108,6 +118,67 @@ async function save() {
   }
 }
 
+function confirmDeletion() {
+  saveError.value = null
+  deleteError.value = null
+  deleteNotice.value = ''
+  confirmingDelete.value = true
+  nextTick(() => cancelControl.value?.querySelector('button')?.focus())
+}
+
+async function reconcileDeletion() {
+  if (loading.value || deleting.value || controller.signal.aborted) return
+  const version = auth.sessionVersion
+  const result = await read(() => getTask(api, props.taskId, controller.signal))
+  if (controller.signal.aborted || version !== auth.sessionVersion) return
+  if (result.ok) {
+    details.value = result.data
+    emit('updated', result.data)
+    deleteNeedsReload.value = false
+    deleteNotice.value = 'The task still exists. You can retry deletion.'
+  } else if (loadError.value?.status === 404) {
+    handleFailure(loadError.value)
+    emit('reconcile')
+  }
+}
+
+async function remove() {
+  if (
+    !canEdit.value ||
+    !confirmingDelete.value ||
+    loading.value ||
+    saving.value ||
+    deleting.value ||
+    deleteNeedsReload.value ||
+    controller.signal.aborted
+  )
+    return
+  const version = auth.sessionVersion
+  const result = await destroy(() => deleteTask(api, props.taskId, controller.signal))
+  if (controller.signal.aborted || version !== auth.sessionVersion) return
+  if (result.ok) {
+    emit('removed', props.taskId)
+    visible.value = false
+  } else if (deleteError.value?.status === 404) {
+    handleFailure(deleteError.value)
+    emit('reconcile')
+  } else if (deleteError.value?.kind === 'unavailable' || deleteError.value?.kind === 'unknown') {
+    deleteNeedsReload.value = true
+    deleteNotice.value =
+      'The deletion could not be confirmed. Checking the task before trying again.'
+    await reconcileDeletion()
+  }
+}
+
+function cancel() {
+  if (confirmingDelete.value && !missing.value) {
+    confirmingDelete.value = false
+    deleteError.value = null
+    deleteNotice.value = ''
+    nextTick(() => titleInput.value?.focus())
+  } else visible.value = false
+}
+
 function clear() {
   controller.abort()
   details.value = null
@@ -116,6 +187,10 @@ function clear() {
   titleError.value = ''
   loadError.value = null
   saveError.value = null
+  deleteError.value = null
+  confirmingDelete.value = false
+  deleteNeedsReload.value = false
+  deleteNotice.value = ''
 }
 watch(
   visible,
@@ -139,18 +214,31 @@ onMounted(loadDetails)
 <template>
   <BaseDialog
     v-model:visible="visible"
-    title="Edit task"
-    :busy="saving"
+    :title="confirmingDelete ? 'Delete task' : 'Edit task'"
+    :busy="saving || deleting"
     @after-hide="emit('closed')"
   >
     <div class="space-y-4">
       <p v-if="loading" role="status">Loading task…</p>
       <p v-if="missing" role="alert">This task no longer exists.</p>
-      <p v-else-if="loadError || saveError" role="alert" class="text-sm text-danger">
-        {{ (loadError || saveError)?.message }}
+      <p v-else-if="loadError || saveError || deleteError" role="alert" class="text-sm text-danger">
+        {{ (loadError || saveError || deleteError)?.message }}
       </p>
+      <p v-if="confirmingDelete && !missing" class="wrap-anywhere">
+        Permanently delete “{{ details?.title }}”? This cannot be undone.
+      </p>
+      <p v-if="confirmingDelete && deleteNotice && !missing" role="status" class="text-sm">
+        {{ deleteNotice }}
+      </p>
+      <Button
+        v-if="confirmingDelete && deleteNeedsReload && !missing"
+        label="Check task"
+        severity="secondary"
+        :disabled="loading || deleting"
+        @click="reconcileDeletion"
+      />
       <form
-        v-if="canEdit && !loading"
+        v-if="canEdit && !loading && !confirmingDelete"
         id="task-editor-form"
         class="space-y-4"
         novalidate
@@ -182,7 +270,7 @@ onMounted(loadDetails)
         unsaved changes.
       </p>
       <Button
-        v-if="!missing && (loadError || uncertain)"
+        v-if="!missing && !confirmingDelete && (loadError || uncertain)"
         label="Reload details"
         severity="secondary"
         :disabled="loading || saving"
@@ -190,9 +278,32 @@ onMounted(loadDetails)
       />
     </div>
     <template #footer>
-      <Button label="Cancel" severity="secondary" :disabled="saving" @click="visible = false" />
       <Button
-        v-if="canEdit"
+        v-if="canEdit && !confirmingDelete"
+        label="Delete task"
+        severity="danger"
+        outlined
+        :disabled="loading || saving || deleting || !!loadError"
+        @click="confirmDeletion"
+      />
+      <span ref="cancelControl">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          :disabled="saving || deleting"
+          @click="cancel"
+        />
+      </span>
+      <Button
+        v-if="canEdit && confirmingDelete"
+        label="Delete task"
+        severity="danger"
+        :loading="deleting"
+        :disabled="loading || deleting || deleteNeedsReload"
+        @click="remove"
+      />
+      <Button
+        v-if="canEdit && !confirmingDelete"
         type="submit"
         form="task-editor-form"
         label="Save changes"
