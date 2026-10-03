@@ -52,6 +52,23 @@ export function deleteTask(
   return client.delete(`/cards/${id}`, { signal })
 }
 
+export async function moveTask(
+  client: ReturnType<typeof createApiClient>,
+  id: number,
+  listId: number,
+  position: number,
+  signal?: AbortSignal,
+) {
+  const task = checkTask(
+    await client.patch<TaskDetails>(`/cards/${id}`, { listId, position }, { signal }),
+    id,
+  )
+  if (task.listId !== listId || task.position !== position) {
+    throw new ApiError('unknown', 'Could not confirm the move. Check the task location.')
+  }
+  return task
+}
+
 export async function createTask(
   client: ReturnType<typeof createApiClient>,
   columnId: number,
