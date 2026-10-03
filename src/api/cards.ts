@@ -44,6 +44,14 @@ export async function updateTask(
   return checkTask(await client.patch<TaskDetails>(`/cards/${id}`, changes, { signal }), id)
 }
 
+export function deleteTask(
+  client: ReturnType<typeof createApiClient>,
+  id: number,
+  signal?: AbortSignal,
+) {
+  return client.delete(`/cards/${id}`, { signal })
+}
+
 export async function createTask(
   client: ReturnType<typeof createApiClient>,
   columnId: number,
