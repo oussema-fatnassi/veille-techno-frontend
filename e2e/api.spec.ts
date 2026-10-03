@@ -306,6 +306,32 @@ test('real account A logout then account B keeps identities separate', async ({ 
     )
     await page.getByRole('button', { name: 'Cancel', exact: true }).click()
     await expect(page.getByRole('dialog')).toBeHidden()
+    // F28: reorder populated columns and verify persistence without changing their tasks.
+    await page
+      .getByRole('button', { name: `Move ${account.name} column right`, exact: true })
+      .click()
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText([
+      `Renamed by ${account.name}`,
+      `${account.name} column`,
+    ])
+    await page.getByRole('button', { name: 'Log out', exact: true }).click()
+    await page.getByLabel('Email').fill(account.email)
+    await page.getByLabel('Password').fill(account.password)
+    await page.getByRole('button', { name: 'Log in', exact: true }).click()
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText([
+      `Renamed by ${account.name}`,
+      `${account.name} column`,
+    ])
+    await expect(
+      page
+        .getByRole('region', { name: `Tasks in ${account.name} column`, exact: true })
+        .getByRole('listitem'),
+    ).toHaveText([`${account.name} private task`, `Edited by ${account.name}`])
+    await expect(
+      page
+        .getByRole('region', { name: `Tasks in Renamed by ${account.name}`, exact: true })
+        .getByRole('listitem'),
+    ).toHaveText([`Created in Renamed by ${account.name}`])
     // Keep the existing empty-column deletion check alongside populated columns.
     await page.getByRole('button', { name: 'New column', exact: true }).click()
     await page.getByLabel('Title', { exact: true }).fill('Empty column')
