@@ -1,0 +1,74 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Quality and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_API_BASE_URL: http://127.0.0.1:3000/api
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Use project npm version
+        run: npx --yes npm@11.20.0 --version
+
+      - name: Install dependencies
+        run: npx --yes npm@11.20.0 ci
+
+      - name: Check formatting
+        run: npx --yes npm@11.20.0 run format:check
+
+      - name: Lint
+        run: npx --yes npm@11.20.0 run lint:check
+
+      - name: Check types
+        run: npx --yes npm@11.20.0 run type-check && npx --yes npm@11.20.0 run type-check:e2e
+
+      - name: Unit and component tests with coverage
+        run: npx --yes npm@11.20.0 run test:coverage
+
+      - name: Build
+        run: npx --yes npm@11.20.0 run build-only
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Navigation and shared UI browser tests
+        run: npx --yes npm@11.20.0 run test:e2e
+
+      - name: API proxy browser tests
+        run: npx --yes npm@11.20.0 run test:api
+
+      - name: Upload test reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-test-reports
+          path: |
+            coverage/
+            playwright-report/
+            test-results/
+            docs/ui/*.png
+          if-no-files-found: ignore
+          retention-days: 7
