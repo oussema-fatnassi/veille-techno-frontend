@@ -5,20 +5,25 @@ import { test, expect, type Page } from '@playwright/test'
 
 const realApi = process.env.API_SMOKE_REAL === '1'
 let backend: Server
+let mockUserEmail = 'api@example.test'
 const received: { path: string; authorization?: string }[] = []
 
 test.beforeAll(async () => {
   if (realApi) return
-  backend = createServer((request, response) => {
+  backend = createServer(async (request, response) => {
     received.push({ path: request.url!, authorization: request.headers.authorization })
     response.setHeader('Content-Type', 'application/json')
     if (request.url === '/api/auth/login') {
+      let body = ''
+      for await (const chunk of request) body += chunk
+      const payload = JSON.parse(body) as { email?: string }
+      if (payload.email) mockUserEmail = payload.email
       response.end(JSON.stringify({ accessToken: 'browser-test-token' }))
     } else if (request.url === '/api/lists') {
       response.end('[]')
     } else if (request.url === '/api/users/me') {
       response.writeHead(request.headers.authorization === 'Bearer browser-test-token' ? 200 : 401)
-      response.end(JSON.stringify({ id: 1, name: 'API test user', email: 'api@example.test' }))
+      response.end(JSON.stringify({ id: 1, name: 'API test user', email: mockUserEmail }))
     } else {
       response.writeHead(404)
       response.end('{}')
