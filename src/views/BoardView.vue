@@ -31,9 +31,10 @@ onMounted(loadProfile)
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-3 sm:justify-end">
-        <p v-if="auth.profile" class="text-sm text-muted wrap-anywhere">
-          {{ auth.profile.email }}
-        </p>
+        <div v-if="auth.profile" class="text-right text-sm wrap-anywhere">
+          <p class="font-medium text-text">{{ auth.profile.name }}</p>
+          <p class="text-muted">{{ auth.profile.email }}</p>
+        </div>
         <Button label="Log out" class="cursor-pointer" @click="logout" />
       </div>
     </header>
