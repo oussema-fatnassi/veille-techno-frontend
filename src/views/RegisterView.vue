@@ -98,59 +98,77 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <main class="min-h-screen bg-surface p-6">
-    <section aria-labelledby="register-title" class="max-w-sm">
-      <h1 id="register-title" class="text-2xl font-bold">Create an account</h1>
-
-      <form class="mt-6 space-y-4" novalidate @submit.prevent="handleSubmit">
-        <BaseInput
-          id="name"
-          ref="nameInput"
-          v-model="name"
-          label="Name"
-          :error="nameError"
-          autocomplete="name"
-          required
-          @input="validateName"
+  <main class="flex min-h-screen items-center justify-center bg-surface p-6">
+    <div class="grid w-full max-w-5xl items-center gap-10 md:grid-cols-2">
+      <section aria-labelledby="app-title" class="space-y-5">
+        <img
+          src="/KanbanBoardIcon.png"
+          alt="Kanban board logo"
+          class="mx-auto h-40 w-40 object-contain md:h-56 md:w-56"
         />
+        <div class="space-y-2">
+          <h1 id="app-title" class="text-center text-3xl font-bold">Veille Techno Board</h1>
+          <p class="max-w-md text-muted">
+            Create a workspace for tasks, columns, and project progress.
+          </p>
+          <p class="text-sm text-muted">Plan it. Move it. Finish it.</p>
+        </div>
+      </section>
 
-        <BaseInput
-          id="email"
-          ref="emailInput"
-          v-model="email"
-          :error="emailError"
-          label="Email"
-          type="email"
-          autocomplete="email"
-          required
-          @input="validateEmail"
-        />
+      <section aria-labelledby="register-title" class="w-full max-w-sm md:justify-self-end">
+        <h2 id="register-title" class="text-2xl font-bold">Create an account</h2>
 
-        <BaseInput
-          id="password"
-          ref="passwordInput"
-          v-model="password"
-          label="Password"
-          type="password"
-          autocomplete="new-password"
-          :error="passwordError"
-          required
-          @input="validatePassword"
-        />
+        <form class="mt-6 space-y-4" novalidate @submit.prevent="handleSubmit">
+          <BaseInput
+            id="name"
+            ref="nameInput"
+            v-model="name"
+            label="Name"
+            :error="nameError"
+            autocomplete="name"
+            required
+            @input="validateName"
+          />
 
-        <p v-if="error" role="alert" class="text-sm text-danger">{{ error.message }}</p>
-        <Button
-          type="submit"
-          :label="loading ? 'Creating account…' : 'Create account'"
-          :loading="loading"
-          :disabled="loading"
-        />
-      </form>
+          <BaseInput
+            id="email"
+            ref="emailInput"
+            v-model="email"
+            :error="emailError"
+            label="Email"
+            type="email"
+            autocomplete="email"
+            required
+            @input="validateEmail"
+          />
 
-      <p class="mt-4">
-        Already have an account?
-        <RouterLink :to="{ name: 'login' }" class="text-primary underline"> Log in </RouterLink>
-      </p>
-    </section>
+          <BaseInput
+            id="password"
+            ref="passwordInput"
+            v-model="password"
+            label="Password"
+            type="password"
+            autocomplete="new-password"
+            :error="passwordError"
+            required
+            @input="validatePassword"
+          />
+
+          <p v-if="error" role="alert" class="text-sm text-danger">{{ error.message }}</p>
+          <Button
+            type="submit"
+            :label="loading ? 'Creating account…' : 'Create account'"
+            :loading="loading"
+            :disabled="loading"
+            class="w-full cursor-pointer"
+          />
+        </form>
+
+        <p class="mt-4">
+          Already have an account?
+          <RouterLink :to="{ name: 'login' }" class="text-primary underline"> Log in </RouterLink>
+        </p>
+      </section>
+    </div>
   </main>
 </template>

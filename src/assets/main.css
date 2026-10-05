@@ -47,3 +47,28 @@
     @apply bg-page font-sans text-content antialiased;
   }
 }
+
+/* Sortable's placeholder shows the exact destination while a card or column moves. */
+.drag-ghost {
+  opacity: 0.35;
+  outline: 2px dashed var(--color-primary);
+  outline-offset: -2px;
+}
+
+.board-scroll {
+  scrollbar-color: var(--color-outline) transparent;
+  scrollbar-width: thin;
+}
+
+.board-scroll::-webkit-scrollbar {
+  height: 0.75rem;
+}
+
+.board-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-outline);
+  border-radius: 999px;
+}
+
+.board-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}

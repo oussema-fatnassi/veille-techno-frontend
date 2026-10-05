@@ -34,19 +34,19 @@ test('anonymous access and reload require login; logging in reloads the profile'
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('heading', { name: 'My board' })).toHaveCount(0)
   await login(page)
-  await expect(page.getByText('Signed in as')).toContainText('a@example.com')
+  await expect(page.getByText('a@example.com', { exact: true })).toBeVisible()
   await page.reload()
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('heading', { name: 'My board' })).toHaveCount(0)
   await login(page)
-  await expect(page.getByText('Signed in as')).toContainText('a@example.com')
+  await expect(page.getByText('a@example.com', { exact: true })).toBeVisible()
 })
 
 test('logout clears account A, blocks Back, and loads account B', async ({ page }) => {
   await page.goto('/missing')
   await page.getByRole('link', { name: 'Back to login' }).click()
   await login(page)
-  await expect(page.getByText('Signed in as')).toContainText('a@example.com')
+  await expect(page.getByText('a@example.com', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Log out' }).click()
   await expect(page).toHaveURL(/\/login$/)
   await page.goBack()
@@ -54,7 +54,7 @@ test('logout clears account A, blocks Back, and loads account B', async ({ page 
   await page.goForward()
   await expect(page).toHaveURL(/\/login$/)
   await login(page, 'b@example.com')
-  await expect(page.getByText('Signed in as')).toContainText('b@example.com')
+  await expect(page.getByText('b@example.com', { exact: true })).toBeVisible()
   await expect(page.getByText('a@example.com', { exact: false })).toHaveCount(0)
 })
 
@@ -80,7 +80,7 @@ test('403 keeps the session and offers retry', async ({ page }) => {
     route.fulfill({ json: { id: 1, name: 'Account A', email: 'a@example.com' } }),
   )
   await page.getByRole('button', { name: 'Retry' }).click()
-  await expect(page.getByText('Signed in as')).toContainText('a@example.com')
+  await expect(page.getByText('a@example.com', { exact: true })).toBeVisible()
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
@@ -106,10 +106,10 @@ test('late profile data from account A cannot replace account B', async ({ page 
     await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page).toHaveURL(/\/login$/)
     await login(page, 'b@example.com')
-    await expect(page.getByText('Signed in as')).toContainText('b@example.com')
+    await expect(page.getByText('b@example.com', { exact: true })).toBeVisible()
   } finally {
     release()
   }
-  await expect(page.getByText('Signed in as')).toContainText('b@example.com')
+  await expect(page.getByText('b@example.com', { exact: true })).toBeVisible()
   await expect(page.getByText('a@example.com', { exact: false })).toHaveCount(0)
 })

@@ -10,11 +10,6 @@ export const routes = [
     redirect: '/login',
   },
   {
-    path: '/login',
-    name: 'login',
-    component: LoginView,
-  },
-  {
     path: '/register',
     name: 'register',
     component: RegisterView,
@@ -23,6 +18,11 @@ export const routes = [
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: NotFoundView,
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: LoginView,
   },
   {
     path: '/board',
