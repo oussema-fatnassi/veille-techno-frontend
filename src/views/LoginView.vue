@@ -72,62 +72,80 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <main class="min-h-screen bg-surface p-6">
-    <section aria-labelledby="login-title" class="max-w-sm">
-      <h1 id="login-title" class="text-2xl font-bold">Log in</h1>
-      <p class="mt-2">Sign in to access your board.</p>
-
-      <p v-if="auth.sessionMessage" role="alert" class="mt-4 text-danger">
-        {{ auth.sessionMessage }}
-      </p>
-
-      <p v-if="registrationMessage" role="status" class="mt-4 text-success">
-        {{ registrationMessage }}
-      </p>
-
-      <form class="mt-6 space-y-4" novalidate @submit.prevent="handleSubmit">
-        <BaseInput
-          id="email"
-          ref="emailInput"
-          v-model="email"
-          label="Email"
-          type="email"
-          autocomplete="username"
-          :error="emailError"
-          required
-          @input="validateEmail"
+  <main class="flex min-h-screen items-center justify-center bg-surface p-6">
+    <div class="grid w-full max-w-5xl items-center gap-10 md:grid-cols-2">
+      <section aria-labelledby="app-title" class="space-y-5">
+        <img
+          src="/KanbanBoardIcon.png"
+          alt="Kanban board logo"
+          class="mx-auto h-40 w-40 object-contain md:h-56 md:w-56"
         />
+        <div class="space-y-2">
+          <h1 id="app-title" class="text-center text-3xl font-bold">Veille Techno Board</h1>
+          <p class="max-w-md text-muted">
+            A simple Kanban board to organize columns, move tasks, and keep project work clear.
+          </p>
+          <p class="text-sm text-muted">Plan it. Move it. Finish it.</p>
+        </div>
+      </section>
 
-        <BaseInput
-          id="password"
-          ref="passwordInput"
-          v-model="password"
-          label="Password"
-          type="password"
-          autocomplete="current-password"
-          :error="passwordError"
-          required
-          @input="validatePassword"
-        />
+      <section aria-labelledby="login-title" class="w-full max-w-sm md:justify-self-end">
+        <h2 id="login-title" class="text-2xl font-bold">Log in</h2>
+        <p class="mt-2">Sign in to access your board.</p>
 
-        <p v-if="error" role="alert" class="text-sm text-danger">
-          {{ error.message }}
+        <p v-if="auth.sessionMessage" role="alert" class="mt-4 text-danger">
+          {{ auth.sessionMessage }}
         </p>
 
-        <Button
-          type="submit"
-          :label="loading ? 'Logging in…' : 'Log in'"
-          :loading="loading"
-          :disabled="loading"
-        />
-
-        <p class="mt-4">
-          Don’t have an account?
-          <RouterLink :to="{ name: 'register' }" class="text-primary underline">
-            Create an account
-          </RouterLink>
+        <p v-if="registrationMessage" role="status" class="mt-4 text-success">
+          {{ registrationMessage }}
         </p>
-      </form>
-    </section>
+
+        <form class="mt-6 space-y-4" novalidate @submit.prevent="handleSubmit">
+          <BaseInput
+            id="email"
+            ref="emailInput"
+            v-model="email"
+            label="Email"
+            type="email"
+            autocomplete="username"
+            :error="emailError"
+            required
+            @input="validateEmail"
+          />
+
+          <BaseInput
+            id="password"
+            ref="passwordInput"
+            v-model="password"
+            label="Password"
+            type="password"
+            autocomplete="current-password"
+            :error="passwordError"
+            required
+            @input="validatePassword"
+          />
+
+          <p v-if="error" role="alert" class="text-sm text-danger">
+            {{ error.message }}
+          </p>
+
+          <Button
+            type="submit"
+            :label="loading ? 'Logging in…' : 'Log in'"
+            :loading="loading"
+            :disabled="loading"
+            class="w-full cursor-pointer"
+          />
+
+          <p class="mt-4">
+            Don’t have an account?
+            <RouterLink :to="{ name: 'register' }" class="text-primary underline">
+              Create an account
+            </RouterLink>
+          </p>
+        </form>
+      </section>
+    </div>
   </main>
 </template>

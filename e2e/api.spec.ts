@@ -1,23 +1,29 @@
+import { drag } from './helpers/drag.js'
 import { createServer, type Server } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import { test, expect, type Page } from '@playwright/test'
 
 const realApi = process.env.API_SMOKE_REAL === '1'
 let backend: Server
+let mockUserEmail = 'api@example.test'
 const received: { path: string; authorization?: string }[] = []
 
 test.beforeAll(async () => {
   if (realApi) return
-  backend = createServer((request, response) => {
+  backend = createServer(async (request, response) => {
     received.push({ path: request.url!, authorization: request.headers.authorization })
     response.setHeader('Content-Type', 'application/json')
     if (request.url === '/api/auth/login') {
+      let body = ''
+      for await (const chunk of request) body += chunk
+      const payload = JSON.parse(body) as { email?: string }
+      if (payload.email) mockUserEmail = payload.email
       response.end(JSON.stringify({ accessToken: 'browser-test-token' }))
     } else if (request.url === '/api/lists') {
       response.end('[]')
     } else if (request.url === '/api/users/me') {
       response.writeHead(request.headers.authorization === 'Bearer browser-test-token' ? 200 : 401)
-      response.end(JSON.stringify({ id: 1, name: 'API test user', email: 'api@example.test' }))
+      response.end(JSON.stringify({ id: 1, name: 'API test user', email: mockUserEmail }))
     } else {
       response.writeHead(404)
       response.end('{}')
@@ -60,7 +66,7 @@ test('browser login and protected request through the frontend proxy', async ({ 
   await page.getByRole('button', { name: 'Log in' }).click()
   await expect(page).toHaveURL(/\/board$/)
 
-  await expect(page.getByText('Signed in as', { exact: false })).toBeVisible()
+  await expect(page.getByText(credentials.email, { exact: true })).toBeVisible()
   expect(received.filter((request) => request.path !== '/api/lists')).toEqual(
     realApi
       ? []
@@ -73,7 +79,7 @@ test('browser login and protected request through the frontend proxy', async ({ 
 
 test('real account A logout then account B keeps identities separate', async ({ page }) => {
   // This test now covers creation, editing, persistence, and deletion for both accounts.
-  test.setTimeout(60_000)
+  test.setTimeout(90_000)
   // The isolated runner creates disposable accounts; CI uses controlled responses.
   // eslint-disable-next-line playwright/no-skipped-test
   test.skip(!realApi, 'Requires the real backend')
@@ -108,7 +114,7 @@ test('real account A logout then account B keeps identities separate', async ({ 
     await page.getByLabel('Password').fill(account.password)
     await page.getByRole('button', { name: 'Log in' }).click()
     await expect(page).toHaveURL(/\/board$/)
-    await expect(page.getByText('Signed in as')).toContainText(account.email)
+    await expect(page.getByText(account.email, { exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { level: 3 })).toHaveText([`${account.name} column`])
     await expect(
       page.getByRole('region', { name: 'Board columns', exact: true }).getByRole('listitem'),
@@ -306,10 +312,32 @@ test('real account A logout then account B keeps identities separate', async ({ 
     )
     await page.getByRole('button', { name: 'Cancel', exact: true }).click()
     await expect(page.getByRole('dialog')).toBeHidden()
-    // F28: reorder populated columns and verify persistence without changing their tasks.
-    await page
-      .getByRole('button', { name: `Move ${account.name} column right`, exact: true })
-      .click()
+    // Drag both a task and its column, then confirm persistence from the real API.
+    const destinationTasks = page
+      .getByRole('region', { name: `Tasks in Renamed by ${account.name}`, exact: true })
+      .locator('ul')
+    const destinationBox = await destinationTasks.boundingBox()
+    await drag(
+      page,
+      page.getByRole('button', { name: `Edited by ${account.name}`, exact: true }),
+      destinationTasks,
+      30,
+      destinationBox!.height - 2,
+    )
+    await expect(
+      page
+        .getByRole('region', { name: `Tasks in Renamed by ${account.name}`, exact: true })
+        .getByRole('listitem'),
+    ).toHaveText([`Created in Renamed by ${account.name}`, `Edited by ${account.name}`])
+    await drag(
+      page,
+      page.getByRole('heading', { name: `${account.name} column`, exact: true }),
+      page.locator('section').filter({
+        has: page.getByRole('heading', { name: `Renamed by ${account.name}`, exact: true }),
+      }),
+      270,
+      25,
+    )
     await expect(page.getByRole('heading', { level: 3 })).toHaveText([
       `Renamed by ${account.name}`,
       `${account.name} column`,
@@ -324,14 +352,9 @@ test('real account A logout then account B keeps identities separate', async ({ 
     ])
     await expect(
       page
-        .getByRole('region', { name: `Tasks in ${account.name} column`, exact: true })
-        .getByRole('listitem'),
-    ).toHaveText([`${account.name} private task`, `Edited by ${account.name}`])
-    await expect(
-      page
         .getByRole('region', { name: `Tasks in Renamed by ${account.name}`, exact: true })
         .getByRole('listitem'),
-    ).toHaveText([`Created in Renamed by ${account.name}`])
+    ).toHaveText([`Created in Renamed by ${account.name}`, `Edited by ${account.name}`])
     // Keep the existing empty-column deletion check alongside populated columns.
     await page.getByRole('button', { name: 'New column', exact: true }).click()
     await page.getByLabel('Title', { exact: true }).fill('Empty column')
@@ -401,7 +424,7 @@ test('real UI registration followed by login, then a duplicate email gets the sa
   await expect(page.getByLabel('Password')).toHaveValue('')
   await page.getByLabel('Password').fill(account.password)
   await page.getByRole('button', { name: 'Log in' }).click()
-  await expect(page.getByText('Signed in as')).toContainText(account.email)
+  await expect(page.getByText(account.email, { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Log out' }).click()
   await page.getByRole('link', { name: 'Create an account' }).click()
   await page.getByLabel('Name', { exact: true }).fill(account.name)

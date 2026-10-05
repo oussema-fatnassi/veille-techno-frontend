@@ -2,6 +2,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
+import { VueDraggable } from 'vue-draggable-plus'
 import { server } from '../../tests/mocks/server'
 import BoardColumns from '@/components/board/BoardColumns.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -45,23 +46,30 @@ async function mountBoard() {
   const headings = () => wrapper.findAll('h3').map((item) => item.text())
   return { wrapper, auth, headings }
 }
+async function dragColumn(
+  wrapper: Awaited<ReturnType<typeof mountBoard>>['wrapper'],
+  title: string,
+  destination: number,
+) {
+  const column = columns.find((item) => item.title === title)!
+  wrapper.findComponent(VueDraggable).vm.$emit('update', {
+    data: { ...column },
+    newDraggableIndex: destination,
+  })
+  await flushPromises()
+}
 
 describe('column reordering', () => {
-  it('disables boundary controls and sends no mutation for unavailable directions', async () => {
+  it('does not show old column move buttons', async () => {
     const { wrapper } = await mountBoard()
-    expect(wrapper.get('[aria-label="Move Todo left"]').attributes()).toHaveProperty('disabled')
-    expect(wrapper.get('[aria-label="Move Done right"]').attributes()).toHaveProperty('disabled')
-    await wrapper.get('[aria-label="Move Todo left"]').trigger('click')
-    await wrapper.get('[aria-label="Move Done right"]').trigger('click')
+    expect(wrapper.findAll('button[aria-label^="Move "]')).toHaveLength(0)
     expect(patches).toEqual([])
   })
 
   it.each([0, 1])('handles a board with %s columns', async (count) => {
     columns = columns.slice(0, count)
     const { wrapper } = await mountBoard()
-    for (const button of wrapper.findAll('button[aria-label^="Move "]')) {
-      expect(button.attributes()).toHaveProperty('disabled')
-    }
+    expect(wrapper.findAll('button[aria-label^="Move "]')).toHaveLength(0)
     expect(wrapper.findAll('h3')).toHaveLength(count)
     expect(patches).toEqual([])
   })
@@ -71,10 +79,11 @@ describe('column reordering', () => {
     async (direction) => {
       const { wrapper, headings } = await mountBoard()
       const taskElements = wrapper.findAll('li').map((item) => item.element)
-      await wrapper.get(`[aria-label="Move Doing ${direction}"]`).trigger('click')
-      await vi.waitFor(() => expect(wrapper.text()).toContain(`moved ${direction}.`))
-      expect(headings()).toEqual(
-        direction === 'left' ? ['Doing', 'Todo', 'Done'] : ['Todo', 'Done', 'Doing'],
+      await dragColumn(wrapper, 'Doing', direction === 'left' ? 0 : 2)
+      await vi.waitFor(() =>
+        expect(headings()).toEqual(
+          direction === 'left' ? ['Doing', 'Todo', 'Done'] : ['Todo', 'Done', 'Doing'],
+        ),
       )
       expect(wrapper.findAll('li').map((item) => item.element)).toEqual(
         direction === 'left'
@@ -95,7 +104,7 @@ describe('column reordering', () => {
     columns[1]!.position = 7
     columns[2]!.position = 40
     const { wrapper, headings } = await mountBoard()
-    await wrapper.get('[aria-label="Move Doing left"]').trigger('click')
+    await dragColumn(wrapper, 'Doing', 0)
     await vi.waitFor(() => expect(headings()).toEqual(['Doing', 'Todo', 'Done']))
     expect(patches).toEqual([
       { id: 2, body: { position: 0 } },
@@ -114,16 +123,14 @@ describe('column reordering', () => {
         ),
       )
       // First PATCH moves Done to position 1; second PATCH fails.
-      await wrapper.get('[aria-label="Move Doing right"]').trigger('click')
+      await dragColumn(wrapper, 'Doing', 2)
       await vi.waitFor(() => expect(wrapper.text()).toContain('The reorder was not confirmed.'))
       await vi.waitFor(() => expect(wrapper.findAll('h3')).toHaveLength(3))
       expect(reads).toBe(2)
       expect(columns[2]!.position).toBe(1)
       expect(headings()).toEqual(['Todo', 'Doing', 'Done'])
       expect(wrapper.text()).not.toContain('moved right.')
-      expect(wrapper.get('[aria-label="Move Doing right"]').attributes()).not.toHaveProperty(
-        'disabled',
-      )
+      expect(wrapper.get('[aria-label="Rename Doing"]').attributes()).not.toHaveProperty('disabled')
     },
   )
 
@@ -133,7 +140,7 @@ describe('column reordering', () => {
       http.patch(`${API}/lists/2`, () => HttpResponse.error()),
       http.get(`${API}/lists`, () => HttpResponse.json({}, { status: 500 })),
     )
-    await wrapper.get('[aria-label="Move Doing left"]').trigger('click')
+    await dragColumn(wrapper, 'Doing', 0)
     await vi.waitFor(() => expect(wrapper.findAll('[role="alert"]')).toHaveLength(2))
     expect(wrapper.findAll('h3')).toHaveLength(0)
     expect(wrapper.get('button').attributes()).toHaveProperty('disabled')
@@ -155,7 +162,7 @@ describe('column reordering', () => {
         return HttpResponse.json({}, { status: 404 })
       }),
     )
-    await wrapper.get('[aria-label="Move Doing left"]').trigger('click')
+    await dragColumn(wrapper, 'Doing', 0)
     await vi.waitFor(() => expect(wrapper.findAll('h3')).toHaveLength(2))
     expect(document.activeElement?.textContent).toBe('New column')
   })
@@ -164,7 +171,7 @@ describe('column reordering', () => {
     const { wrapper, auth } = await mountBoard()
     const request = vi.fn<() => Response>(() => HttpResponse.json({}, { status: 401 }))
     server.use(http.patch(`${API}/lists/:id`, request))
-    await wrapper.get('[aria-label="Move Doing left"]').trigger('click')
+    await dragColumn(wrapper, 'Doing', 0)
     await vi.waitFor(() => expect(auth.isAuthenticated).toBe(false))
     expect(request).toHaveBeenCalledTimes(1)
     expect(wrapper.findAll('h3')).toHaveLength(0)
@@ -187,12 +194,11 @@ describe('column reordering', () => {
       }),
     )
     try {
-      await wrapper.get('[aria-label="Move Doing left"]').trigger('click')
+      await dragColumn(wrapper, 'Doing', 0)
       await vi.waitFor(() => expect(calls).toBe(1))
       expect(headings()).toEqual(['Todo', 'Doing', 'Done'])
       expect(wrapper.get('[aria-label="Rename Doing"]').attributes()).toHaveProperty('disabled')
-      expect(wrapper.get('[aria-label="Move Doing left"]').attributes()).toHaveProperty('disabled')
-      await wrapper.get('[aria-label="Move Doing left"]').trigger('click')
+      await dragColumn(wrapper, 'Doing', 0)
     } finally {
       release()
     }
@@ -215,7 +221,7 @@ describe('column reordering', () => {
       }),
     )
     try {
-      await wrapper.get('[aria-label="Move Doing left"]').trigger('click')
+      await dragColumn(wrapper, 'Doing', 0)
       await vi.waitFor(() => expect(calls).toBe(1))
       auth.clearSession()
       auth.accessToken = 'account-b'
@@ -231,7 +237,7 @@ describe('column reordering', () => {
   it('rejects an incorrect PATCH response and refetches', async () => {
     const { wrapper } = await mountBoard()
     server.use(http.patch(`${API}/lists/2`, () => HttpResponse.json({ id: 9, position: 0 })))
-    await wrapper.get('[aria-label="Move Doing left"]').trigger('click')
+    await dragColumn(wrapper, 'Doing', 0)
     await vi.waitFor(() =>
       expect(wrapper.text()).toContain('Could not confirm the column position.'),
     )
@@ -251,7 +257,7 @@ describe('column reordering', () => {
         ])
       }),
     )
-    await wrapper.get('[aria-label="Move Doing left"]').trigger('click')
+    await dragColumn(wrapper, 'Doing', 0)
     await vi.waitFor(() => expect(wrapper.text()).toContain('The column order changed.'))
     await vi.waitFor(() => expect(reads).toBe(3))
     expect(wrapper.text()).not.toContain('moved left.')

@@ -21,7 +21,7 @@ describe('application navigation', () => {
     const wrapper = mount(App, { global: { plugins: [pinia, router] } })
     await flushPromises()
     expect(router.currentRoute.value.path).toBe(destination)
-    expect(wrapper.get('h1').text()).toBe(heading)
+    expect(wrapper.text()).toContain(heading)
     cleanup()
   })
 })

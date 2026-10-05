@@ -61,7 +61,7 @@ for (const width of [390, 1440]) {
     await page.getByLabel('Password').fill('Learning1!')
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/\/board$/)
-    await expect(page.getByText('Signed in as')).toContainText('learner@example.com')
+    await expect(page.getByText('learner@example.com', { exact: true })).toBeVisible()
   })
 }
 
