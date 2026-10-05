@@ -121,7 +121,7 @@ function reorderDraggedColumn(event: DraggableEvent<BoardColumn>) {
 async function dropTask(id: number, targetId: number, position: number) {
   if (!canCreate.value || controller.signal.aborted) return
   const version = auth.sessionVersion
-  const result = await saveTaskMove(() => placeTask(api, id, targetId, position, controller.signal))
+  await saveTaskMove(() => placeTask(api, id, targetId, position, controller.signal))
   if (controller.signal.aborted || version !== auth.sessionVersion) return
   // A sort can update several positions; all columns must read the confirmed server order.
   taskRefreshVersion.value++
